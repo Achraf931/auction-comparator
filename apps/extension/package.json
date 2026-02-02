@@ -1,0 +1,36 @@
+{
+  "name": "@auction-comparator/extension",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "compile": "vue-tsc --noEmit",
+    "postinstall": "wxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "@auction-comparator/shared": "workspace:*",
+    "@nuxt/ui": "^4.4.0",
+    "@vitejs/plugin-vue": "^6.0.3",
+    "@vueuse/core": "^14.1.0",
+    "vue": "^3.5.27",
+    "vue-i18n": "^11.2.8",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@hrcd/eslint-config": "^3.0.3",
+    "@types/chrome": "^0.1.36",
+    "@wxt-dev/module-vue": "^1.0.3",
+    "eslint": "^9.39.2",
+    "typescript": "5.9.3",
+    "vue-tsc": "^3.2.4",
+    "wxt": "^0.20.13"
+  }
+}

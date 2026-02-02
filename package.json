@@ -1,37 +1,24 @@
 {
-  "name": "wxt-nuxt-ui-starter",
-  "author": "HugoRCD",
-  "description": "manifest.json description",
+  "name": "auction-comparator",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
-    "build": "wxt build",
-    "build:firefox": "wxt build -b firefox",
-    "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
-    "compile": "vue-tsc --noEmit",
-    "postinstall": "wxt prepare",
+    "dev:extension": "cd apps/extension && bun run dev",
+    "dev:server": "cd apps/server && bun run dev",
+    "dev": "bun run dev:server & bun run dev:extension",
+    "build:extension": "cd apps/extension && bun run build",
+    "build:server": "cd apps/server && bun run build",
+    "build": "bun run build:server && bun run build:extension",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
-  "dependencies": {
-    "@nuxt/ui": "^3.3.7",
-    "@shelve/cli": "^4.1.6",
-    "@vitejs/plugin-vue": "^5.2.4",
-    "@vueuse/core": "^13.9.0",
-    "vue": "^3.5.27",
-    "vue-router": "^4.6.4"
-  },
   "devDependencies": {
     "@hrcd/eslint-config": "^3.0.3",
-    "@types/chrome": "^0.1.36",
-    "@wxt-dev/module-vue": "^1.0.3",
     "eslint": "^9.39.2",
-    "typescript": "5.9.3",
-    "vue-tsc": "^2.2.12",
-    "wxt": "^0.20.13"
+    "typescript": "5.9.3"
   }
 }

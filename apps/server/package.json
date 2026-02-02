@@ -1,0 +1,31 @@
+{
+  "name": "@auction-comparator/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 3001",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@auction-comparator/shared": "workspace:*",
+    "better-sqlite3": "^12.6.2",
+    "drizzle-orm": "^0.45.1",
+    "lru-cache": "^11.2.5",
+    "stripe": "^20.2.0",
+    "bcrypt": "^6.0.0",
+    "@nuxt/ui": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "drizzle-kit": "^0.31.8",
+    "nuxt": "^4.3.0",
+    "typescript": "5.9.3"
+  }
+}

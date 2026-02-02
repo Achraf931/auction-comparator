@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Reset and base styles for shadow DOM */
+:host {
+  all: initial;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Fixed position overlay container */
+.overlay-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2147483647;
+  max-width: 380px;
+}
+
+/* Animation */
+.overlay-enter-active,
+.overlay-leave-active {
+  transition: all 0.3s ease;
+}
+
+.overlay-enter-from,
+.overlay-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}

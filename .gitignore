@@ -7,12 +7,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build outputs
 .output
+dist
 stats.html
 stats-*.json
+
+# WXT
 .wxt
 web-ext.config.ts
+
+# Nuxt
+.nuxt
+.nitro
+
+# Environment
+.env
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
@@ -25,5 +40,14 @@ web-ext.config.ts
 *.sln
 *.sw?
 
+# Auto-generated
 auto-imports.d.ts
 components.d.ts
+
+# Database
+data/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+drizzle/
