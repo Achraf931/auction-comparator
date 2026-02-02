@@ -83,6 +83,7 @@ const usage = ref<UsageResponse | null>(null)
 const quotaExceeded = ref(false)
 const freeExhausted = ref(false)
 
+
 // Check if user can make comparisons (has subscription OR free tier remaining)
 const canCompare = computed(() => {
   if (hasSubscription.value) return true
@@ -213,6 +214,7 @@ async function handleLogout() {
   user.value = null
   comparison.value = null
 }
+
 
 // Handle auth changed message from background script
 function handleAuthChanged(message: any) {

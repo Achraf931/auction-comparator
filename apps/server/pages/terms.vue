@@ -5,7 +5,7 @@ const config = useRuntimeConfig();
 <template>
   <div class="prose dark:prose-invert max-w-none">
     <h1>Terms of Service</h1>
-    <p class="text-gray-500">Last updated: {{ new Date().toLocaleDateString() }}</p>
+    <p class="text-zinc-500">Last updated: {{ new Date().toLocaleDateString() }}</p>
 
     <h2>Acceptance of Terms</h2>
     <p>
@@ -65,7 +65,7 @@ const config = useRuntimeConfig();
 
     <h2>Contact Us</h2>
     <p>
-      If you have questions about these Terms, please contact us at legal@example.com.
+      If you have questions about these Terms, please contact us at charfehamrouni@gmail.com.
     </p>
   </div>
 </template>

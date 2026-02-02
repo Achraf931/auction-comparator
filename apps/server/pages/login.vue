@@ -45,7 +45,7 @@ async function handleSubmit() {
           <UIcon name="i-lucide-check-circle" class="w-8 h-8 text-green-500" />
         </div>
         <h1 class="text-2xl font-bold text-green-700 dark:text-green-400 mb-2">{{ t('extensionConnected') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">
+        <p class="text-zinc-600 dark:text-zinc-400 mb-6">
           {{ t('extensionNowConnected') }} {{ t('canCloseTab') }}
         </p>
         <div class="flex gap-3 justify-center">
@@ -64,7 +64,7 @@ async function handleSubmit() {
       <template #header>
         <div class="text-center">
           <h1 class="text-2xl font-bold">{{ t('welcomeBack') }}</h1>
-          <p class="text-sm text-gray-500 mt-1">
+          <p class="text-sm text-zinc-500 mt-1">
             {{ extensionId ? t('signInToConnect') : t('signInToAccount') }}
           </p>
         </div>
@@ -110,7 +110,7 @@ async function handleSubmit() {
       </form>
 
       <template #footer>
-        <p class="text-center text-sm text-gray-500">
+        <p class="text-center text-sm text-zinc-500">
           {{ t('noAccount') }}
           <NuxtLink :to="extensionId ? `/register?ext=${extensionId}` : '/register'" class="text-primary-500 hover:underline">
             {{ t('createOne') }}

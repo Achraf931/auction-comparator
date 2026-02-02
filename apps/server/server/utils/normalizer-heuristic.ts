@@ -101,6 +101,45 @@ const MODEL_PATTERNS = [
   /\bVersion\s*([\d.]+)\b/i,
 ];
 
+// Important product type qualifiers that significantly affect price
+// These should be preserved in the search query
+const PRODUCT_TYPE_QUALIFIERS: Record<string, string[]> = {
+  // Mowers/Garden equipment
+  'tondeuse': ['autoportée', 'autoportee', 'tracteur', 'robot', 'thermique', 'électrique', 'electrique', 'mulching'],
+  'mower': ['ride-on', 'riding', 'tractor', 'robot', 'self-propelled', 'push'],
+  // Vehicles
+  'voiture': ['berline', 'break', 'suv', 'cabriolet', 'coupé', 'coupe', 'utilitaire', 'monospace'],
+  'car': ['sedan', 'wagon', 'suv', 'convertible', 'coupe', 'van', 'minivan'],
+  'camion': ['benne', 'plateau', 'frigorifique', 'citerne'],
+  'truck': ['dump', 'flatbed', 'refrigerated', 'tanker'],
+  // Equipment
+  'chariot': ['élévateur', 'elevateur', 'télescopique', 'telescopique'],
+  'forklift': ['telescopic', 'electric', 'diesel'],
+  'nacelle': ['articulée', 'articulee', 'télescopique', 'ciseaux'],
+  'lift': ['articulating', 'telescopic', 'scissor'],
+  // Electronics
+  'ordinateur': ['portable', 'bureau', 'gaming'],
+  'computer': ['laptop', 'desktop', 'gaming'],
+  'téléphone': ['smartphone', 'fixe'],
+  'phone': ['smartphone', 'landline'],
+};
+
+// Generic important type words that should always be preserved
+const IMPORTANT_TYPE_WORDS = [
+  // French
+  'autoportée', 'autoportee', 'autoporte',
+  'tracteur', 'robot', 'professionnel', 'industriel',
+  'portable', 'fixe', 'mobile',
+  'électrique', 'electrique', 'thermique', 'diesel', 'essence', 'hybride',
+  'neuf', 'occasion', 'reconditionné',
+  // English
+  'ride-on', 'riding', 'self-propelled', 'walk-behind', 'push',
+  'tractor', 'robot', 'professional', 'industrial', 'commercial',
+  'portable', 'desktop', 'mobile',
+  'electric', 'gas', 'diesel', 'petrol', 'hybrid',
+  'new', 'used', 'refurbished',
+];
+
 /**
  * Generate cache key for normalization request
  */
@@ -213,8 +252,17 @@ export function normalizeHeuristic(request: NormalizeRequest): NormalizedResult 
       titleLower.includes(b.toLowerCase())
     );
 
+  // Extract important product type qualifiers from the title
+  const typeQualifiers = extractTypeQualifiers(originalTitle);
+  console.log('[Normalizer] Extracted type qualifiers:', typeQualifiers);
+
   if (brand) queryParts.push(brand);
   if (model) queryParts.push(model);
+
+  // Add type qualifiers BEFORE capacity - they significantly affect price
+  if (typeQualifiers.length > 0) {
+    queryParts.push(...typeQualifiers);
+  }
 
   // For vehicles, extract year if present
   if (isVehicle) {
@@ -325,4 +373,49 @@ export function normalizeHeuristic(request: NormalizeRequest): NormalizedResult 
     hints,
     signatures,
   };
+}
+
+/**
+ * Extract important product type qualifiers from a title
+ * These qualifiers significantly affect the price (e.g., "autoportée" for mowers)
+ */
+function extractTypeQualifiers(title: string): string[] {
+  const titleLower = title.toLowerCase();
+  const qualifiers: string[] = [];
+
+  // First, check for product-specific qualifiers
+  for (const [productType, typeQualifiers] of Object.entries(PRODUCT_TYPE_QUALIFIERS)) {
+    if (titleLower.includes(productType)) {
+      for (const qualifier of typeQualifiers) {
+        if (titleLower.includes(qualifier.toLowerCase())) {
+          // Use the original case version if found
+          const regex = new RegExp(qualifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+          const match = title.match(regex);
+          if (match) {
+            qualifiers.push(match[0]);
+          } else {
+            qualifiers.push(qualifier);
+          }
+        }
+      }
+    }
+  }
+
+  // If no product-specific qualifiers found, check for generic important type words
+  if (qualifiers.length === 0) {
+    for (const typeWord of IMPORTANT_TYPE_WORDS) {
+      if (titleLower.includes(typeWord.toLowerCase())) {
+        // Avoid duplicating brand/model
+        const regex = new RegExp(`\\b${typeWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        const match = title.match(regex);
+        if (match) {
+          qualifiers.push(match[0]);
+        }
+      }
+    }
+  }
+
+  // Deduplicate and limit to 2 qualifiers to avoid overly long queries
+  const uniqueQualifiers = [...new Set(qualifiers.map(q => q.toLowerCase()))];
+  return uniqueQualifiers.slice(0, 2);
 }

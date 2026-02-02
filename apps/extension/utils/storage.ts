@@ -17,6 +17,10 @@ export interface ExtensionSettings {
   autoExpand: boolean;
   /** Default margin percentage for verdict */
   marginPercent: number;
+  /** Sites where user has granted permission (site IDs) */
+  enabledSites: string[];
+  /** Origins where user has hidden the extension overlay */
+  hiddenOrigins: string[];
 }
 
 const DEFAULT_SETTINGS: ExtensionSettings = {
@@ -25,6 +29,8 @@ const DEFAULT_SETTINGS: ExtensionSettings = {
   disabledDomains: [],
   autoExpand: true,
   marginPercent: 10,
+  enabledSites: [],
+  hiddenOrigins: [],
 }
 
 const DEFAULT_AUTH_STATE: ExtensionAuthState = {
@@ -222,4 +228,84 @@ export async function needsAuthRefresh(): Promise<boolean> {
 export async function getWebAppUrl(path: string = ''): Promise<string> {
   const settings = await getSettings()
   return `${settings.apiBase}${path}`
+}
+
+// ========== Site Permission Management ==========
+
+/**
+ * Check if a site is enabled (has permission)
+ */
+export async function isSiteEnabled(siteId: string): Promise<boolean> {
+  const settings = await getSettings()
+  return settings.enabledSites.includes(siteId)
+}
+
+/**
+ * Add a site to enabled sites
+ */
+export async function enableSite(siteId: string): Promise<void> {
+  const settings = await getSettings()
+  if (!settings.enabledSites.includes(siteId)) {
+    await saveSettings({
+      enabledSites: [...settings.enabledSites, siteId],
+    })
+  }
+}
+
+/**
+ * Remove a site from enabled sites
+ */
+export async function disableSite(siteId: string): Promise<void> {
+  const settings = await getSettings()
+  await saveSettings({
+    enabledSites: settings.enabledSites.filter(id => id !== siteId),
+  })
+}
+
+/**
+ * Get all enabled site IDs
+ */
+export async function getEnabledSites(): Promise<string[]> {
+  const settings = await getSettings()
+  return settings.enabledSites
+}
+
+// ========== Hidden Origins Management ==========
+
+/**
+ * Check if an origin is hidden
+ */
+export async function isOriginHidden(origin: string): Promise<boolean> {
+  const settings = await getSettings()
+  return settings.hiddenOrigins.includes(origin)
+}
+
+/**
+ * Hide the extension on an origin
+ */
+export async function hideOnOrigin(origin: string): Promise<void> {
+  const settings = await getSettings()
+  if (!settings.hiddenOrigins.includes(origin)) {
+    await saveSettings({
+      hiddenOrigins: [...settings.hiddenOrigins, origin],
+    })
+  }
+}
+
+/**
+ * Show the extension on an origin (remove from hidden)
+ */
+export async function showOnOrigin(origin: string): Promise<void> {
+  const settings = await getSettings()
+  await saveSettings({
+    hiddenOrigins: settings.hiddenOrigins.filter(o => o !== origin),
+  })
+}
+
+/**
+ * Get all hidden origins
+ */
+export async function getHiddenOrigins(): Promise<string[]> {
+  const settings = await getSettings()
+  return settings.hiddenOrigins
 }

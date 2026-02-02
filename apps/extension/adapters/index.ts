@@ -2,6 +2,8 @@ import type { SiteAdapter, AdapterRegistry, AdapterConstructor } from '@auction-
 import { InterencheresAdapter } from './interencheres'
 import { AlcopaAdapter } from './alcopa'
 import { EncheresDomaineAdapter } from './encheres-domaine'
+import { AgorastoreAdapter } from './agorastore'
+import { AucteliaAdapter } from './auctelia'
 import { GenericAdapter } from './generic'
 
 class AdapterRegistryImpl implements AdapterRegistry {
@@ -14,6 +16,8 @@ class AdapterRegistryImpl implements AdapterRegistry {
     this.register(InterencheresAdapter)
     this.register(AlcopaAdapter)
     this.register(EncheresDomaineAdapter)
+    this.register(AgorastoreAdapter)
+    this.register(AucteliaAdapter)
     this.register(GenericAdapter)
   }
 
@@ -59,4 +63,4 @@ export function getAdapterForCurrentPage(): SiteAdapter | null {
   return getAdapterRegistry().getAdapter(window.location.href)
 }
 
-export { InterencheresAdapter, AlcopaAdapter, EncheresDomaineAdapter, GenericAdapter }
+export { InterencheresAdapter, AlcopaAdapter, EncheresDomaineAdapter, AgorastoreAdapter, AucteliaAdapter, GenericAdapter }

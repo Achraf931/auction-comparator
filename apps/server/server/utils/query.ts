@@ -1,10 +1,39 @@
 import type { CompareRequest } from '@auction-comparator/shared';
 
+// Important product type qualifiers that significantly affect price
+const IMPORTANT_TYPE_QUALIFIERS = [
+  // Mowers/Garden - French (compound terms first for priority matching)
+  'tondeuse autoportée', 'tondeuse autoportee', 'tracteur tondeuse', 'robot tondeuse',
+  'autoportée', 'autoportee', 'autoporte',
+  // Mowers/Garden - English
+  'riding mower', 'ride-on mower', 'tractor mower', 'robot mower', 'lawn tractor',
+  'ride-on', 'self-propelled',
+  // Equipment types - French
+  'chariot élévateur', 'chariot elevateur', 'nacelle articulée', 'mini-pelle', 'pelleteuse',
+  // Equipment types - English
+  'forklift', 'scissor lift', 'boom lift', 'excavator', 'mini excavator',
+  // Vehicle types - French
+  'utilitaire', 'fourgon', 'camionnette', 'poids lourd', 'car de tourisme',
+  // Vehicle types - English
+  'van', 'pickup', 'truck', 'heavy duty', 'coach', 'touring bus',
+];
+
+// Base product words to include when type qualifiers are found
+const PRODUCT_BASE_WORDS: Record<string, string> = {
+  'autoportée': 'tondeuse',
+  'autoportee': 'tondeuse',
+  'autoporte': 'tondeuse',
+  'ride-on': 'mower',
+  'riding': 'mower',
+  'self-propelled': 'mower',
+};
+
 /**
  * Build an optimized search query from the compare request
  */
 export function buildSearchQuery(request: CompareRequest): string {
   const parts: string[] = [];
+  const titleLower = request.title.toLowerCase();
 
   // Add brand and model first for better matching
   if (request.brand) {
@@ -15,7 +44,21 @@ export function buildSearchQuery(request: CompareRequest): string {
     parts.push(request.model);
   }
 
-  // If we have brand and model, that's usually enough for a good search
+  // Extract important type qualifiers from title
+  const typeQualifiers = extractTypeQualifiers(request.title);
+  if (typeQualifiers.length > 0) {
+    parts.push(...typeQualifiers);
+    console.log('[Query] Found type qualifiers:', typeQualifiers);
+  }
+
+  // If we have brand, model, and type qualifiers, that's usually enough
+  if (request.brand && request.model && typeQualifiers.length > 0) {
+    const query = parts.join(' ').trim();
+    console.log('[Query] Built from brand+model+type:', query);
+    return query;
+  }
+
+  // If we have brand and model but no type qualifiers, still return
   if (request.brand && request.model) {
     const query = parts.join(' ').trim();
     console.log('[Query] Built from brand+model:', query);
@@ -31,6 +74,11 @@ export function buildSearchQuery(request: CompareRequest): string {
 
   if (request.model) {
     cleanTitle = cleanTitle.replace(new RegExp(escapeRegex(request.model), 'gi'), '').trim();
+  }
+
+  // Remove type qualifiers we already added
+  for (const qualifier of typeQualifiers) {
+    cleanTitle = cleanTitle.replace(new RegExp(escapeRegex(qualifier), 'gi'), '').trim();
   }
 
   // Remove common auction-specific terms
@@ -55,6 +103,48 @@ export function buildSearchQuery(request: CompareRequest): string {
   const query = parts.join(' ').trim();
   console.log('[Query] Built query:', query, '(from title:', request.title?.slice(0, 30), ')');
   return query;
+}
+
+/**
+ * Extract important product type qualifiers from title
+ * Also includes base product words when appropriate (e.g., "tondeuse" for "autoportée")
+ */
+function extractTypeQualifiers(title: string): string[] {
+  const titleLower = title.toLowerCase();
+  const found: string[] = [];
+
+  for (const qualifier of IMPORTANT_TYPE_QUALIFIERS) {
+    if (titleLower.includes(qualifier.toLowerCase())) {
+      // Get the original case version from the title
+      const regex = new RegExp(escapeRegex(qualifier), 'gi');
+      const match = title.match(regex);
+      if (match) {
+        found.push(match[0]);
+      } else {
+        found.push(qualifier);
+      }
+
+      // Check if we need to add a base product word
+      const baseWord = PRODUCT_BASE_WORDS[qualifier.toLowerCase()];
+      if (baseWord && !titleLower.includes(baseWord.toLowerCase())) {
+        // Title has the qualifier but not the base word, add it
+        found.unshift(baseWord); // Add at beginning
+      }
+    }
+  }
+
+  // Deduplicate (case-insensitive) and limit
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const item of found) {
+    const lower = item.toLowerCase();
+    if (!seen.has(lower)) {
+      seen.add(lower);
+      unique.push(item);
+    }
+  }
+
+  return unique.slice(0, 3); // Allow up to 3 for base word + 2 qualifiers
 }
 
 /**

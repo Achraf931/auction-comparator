@@ -130,7 +130,6 @@ const messages = {
     heroTitle3: 'Again',
     heroDescription: 'Our browser extension instantly compares auction prices with real market prices. Know if you\'re getting a deal or being overcharged before you place your bid.',
     getStartedFree: 'Get Started Free',
-    goToAccount: 'Go to Account',
 
     // Landing page - Stats
     auctionSites: 'Auction Sites',

@@ -3,7 +3,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import type { AuctionData, Currency } from '@auction-comparator/shared'
 import App from './App.vue'
 import { getAdapterForCurrentPage } from '@/adapters'
-import { isEnabledForDomain } from '@/utils/storage'
+import { isEnabledForDomain, isOriginHidden } from '@/utils/storage'
 import { debounce } from '@/utils/dom'
 import {
   createExtractor,
@@ -12,9 +12,11 @@ import {
   type ExtractionResult,
 } from '@/extractor'
 import { i18n, initLocale } from '@/utils/i18n'
+import { getAllMatchPatterns } from '@/utils/sites'
 import './main.css'
 
 export default defineContentScript({
+  // Include all supported sites - permissions are checked at runtime
   matches: [
     '*://*.interencheres.fr/*',
     '*://*.interencheres.com/*',
@@ -22,6 +24,8 @@ export default defineContentScript({
     '*://*.alcopa-auction.com/*',
     '*://*.encheres-domaine.gouv.fr/*',
     '*://*.moniteurdesventes.com/*',
+    '*://*.agorastore.fr/*',
+    '*://*.auctelia.com/*',
   ],
   cssInjectionMode: 'ui',
 
@@ -30,10 +34,18 @@ export default defineContentScript({
 
     // Check if extension is enabled for this domain
     const domain = window.location.hostname
+    const origin = window.location.origin
     const enabled = await isEnabledForDomain(domain)
 
     if (!enabled) {
       console.log('[Auction Comparator] Extension disabled for this domain')
+      return
+    }
+
+    // Check if user has hidden the extension on this origin
+    const hidden = await isOriginHidden(origin)
+    if (hidden) {
+      console.log('[Auction Comparator] Extension hidden for this origin:', origin)
       return
     }
 
@@ -78,8 +90,13 @@ export default defineContentScript({
       console.log('[Auction Comparator] Page fully loaded')
     }
 
-    // Small delay to let dynamic content render
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Detect if this is an SPA site that needs longer wait time
+    const isSPASite = domain.includes('auctelia')
+    const initialDelay = isSPASite ? 1500 : 500
+
+    // Wait for dynamic content to render
+    await new Promise(resolve => setTimeout(resolve, initialDelay))
+    console.log('[Auction Comparator] Initial delay complete:', initialDelay, 'ms')
 
     // Extract initial auction data
     let currentData: AuctionData | null = null
@@ -88,10 +105,15 @@ export default defineContentScript({
       currentData = adapter.extractData()
       console.log('[Auction Comparator] Adapter extracted data:', currentData)
 
-      // If price is still 0, retry after a short delay
-      if (currentData && (!currentData.currentBid || currentData.currentBid === 0)) {
-        console.log('[Auction Comparator] Price is 0, retrying extraction in 1s...')
-        await new Promise(resolve => setTimeout(resolve, 1000))
+      // If price is still 0, retry with increasing delays (important for SPAs)
+      const maxRetries = isSPASite ? 3 : 1
+      let retryCount = 0
+
+      while (currentData && (!currentData.currentBid || currentData.currentBid === 0) && retryCount < maxRetries) {
+        retryCount++
+        const retryDelay = retryCount * 1000
+        console.log(`[Auction Comparator] Price is 0, retry ${retryCount}/${maxRetries} in ${retryDelay}ms...`)
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
         currentData = adapter.extractData()
         console.log('[Auction Comparator] Retry extracted data:', currentData)
       }
@@ -167,6 +189,15 @@ export default defineContentScript({
     uiContainer.mount()
     console.log('[Auction Comparator] Overlay mounted')
 
+    // Listen for extension toggle messages from popup
+    const handleToggleMessage = (message: any) => {
+      if (message.type === 'EXTENSION_TOGGLED' && !message.enabled) {
+        console.log('[Auction Comparator] Extension disabled, removing overlay')
+        uiContainer.remove()
+      }
+    }
+    chrome.runtime.onMessage.addListener(handleToggleMessage)
+
     // Set up MutationObserver for price changes (only if using adapter)
     if (adapter) {
       const config = adapter.getMutationConfig()
@@ -194,11 +225,13 @@ export default defineContentScript({
       // Cleanup on context invalidation
       ctx.onInvalidated(() => {
         observer.disconnect()
+        chrome.runtime.onMessage.removeListener(handleToggleMessage)
         uiContainer.remove()
       })
     } else {
       // For self-healing extractor, the extractor handles its own observation
       ctx.onInvalidated(() => {
+        chrome.runtime.onMessage.removeListener(handleToggleMessage)
         uiContainer.remove()
       })
     }

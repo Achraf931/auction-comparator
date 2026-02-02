@@ -93,6 +93,21 @@ const messages = {
     account: 'Account',
     checking: 'Checking...',
     poweredBy: 'Powered by SerpApi',
+
+    // Sites Management
+    currentSite: 'Current site',
+    supportedSites: 'Supported sites',
+    enableOnThisSite: 'Enable on this site',
+    showOnThisSite: 'Show on this site',
+    notSupported: 'Not a supported auction site',
+    enable: 'Enable',
+
+    // Overlay Actions
+    hideOnThisSite: 'Hide on this website',
+    hideConfirm: 'Hide extension?',
+    hideConfirmDesc: 'The overlay will be hidden on this website. You can re-enable it from the extension popup.',
+    cancel: 'Cancel',
+    hide: 'Hide',
   },
   fr: {
     // Header
@@ -186,6 +201,21 @@ const messages = {
     account: 'Compte',
     checking: 'Vérification...',
     poweredBy: 'Propulsé par SerpApi',
+
+    // Sites Management
+    currentSite: 'Site actuel',
+    supportedSites: 'Sites supportés',
+    enableOnThisSite: 'Activer sur ce site',
+    showOnThisSite: 'Afficher sur ce site',
+    notSupported: 'Site d\'enchères non supporté',
+    enable: 'Activer',
+
+    // Overlay Actions
+    hideOnThisSite: 'Masquer sur ce site',
+    hideConfirm: 'Masquer l\'extension ?',
+    hideConfirmDesc: 'Le panneau sera masqué sur ce site. Vous pouvez le réactiver depuis le popup de l\'extension.',
+    cancel: 'Annuler',
+    hide: 'Masquer',
   },
 }
 

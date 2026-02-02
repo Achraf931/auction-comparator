@@ -25,14 +25,14 @@ const isAuthenticated = computed(() => !!state.value.user);
           <nav v-if="isAuthenticated" class="hidden sm:flex items-center gap-4">
             <NuxtLink
               to="/account"
-              class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors"
+              class="text-sm text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition-colors"
               active-class="text-primary-500 font-medium"
             >
               {{ t('account') }}
             </NuxtLink>
             <NuxtLink
               to="/history"
-              class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors"
+              class="text-sm text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition-colors"
               active-class="text-primary-500 font-medium"
             >
               {{ t('history') }}
@@ -49,7 +49,7 @@ const isAuthenticated = computed(() => !!state.value.user);
               class="px-3 py-1 text-sm rounded-md transition-colors"
               :class="locale === opt.value
                 ? 'bg-primary-500 text-white'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'"
+                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'"
               @click="setLocale(opt.value as 'en' | 'fr')"
             >
               {{ opt.label }}

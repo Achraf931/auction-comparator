@@ -5,7 +5,7 @@ const config = useRuntimeConfig();
 <template>
   <div class="prose dark:prose-invert max-w-none">
     <h1>Privacy Policy</h1>
-    <p class="text-gray-500">Last updated: {{ new Date().toLocaleDateString() }}</p>
+    <p class="text-zinc-500">Last updated: {{ new Date().toLocaleDateString() }}</p>
 
     <h2>Introduction</h2>
     <p>
@@ -55,7 +55,7 @@ const config = useRuntimeConfig();
 
     <h2>Contact Us</h2>
     <p>
-      If you have questions about this Privacy Policy, please contact us at privacy@example.com.
+      If you have questions about this Privacy Policy, please contact us at charfehamrouni@gmail.com.
     </p>
   </div>
 </template>

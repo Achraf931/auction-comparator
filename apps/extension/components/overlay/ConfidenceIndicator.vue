@@ -33,7 +33,7 @@ const config = computed(() => {
     default:
       return {
         bars: 0,
-        color: 'bg-gray-300 dark:bg-gray-600',
+        color: 'bg-zinc-300 dark:bg-zinc-600',
         labelKey: 'noConfidenceData',
       }
   }
@@ -48,7 +48,7 @@ const config = computed(() => {
         :key="i"
         class="w-1 rounded-sm transition-colors"
         :class="[
-          i <= config.bars ? config.color : 'bg-gray-300 dark:bg-gray-600',
+          i <= config.bars ? config.color : 'bg-zinc-300 dark:bg-zinc-600',
           i === 1 ? 'h-1.5' : i === 2 ? 'h-2.5' : 'h-4'
         ]"
       />

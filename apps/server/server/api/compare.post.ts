@@ -347,6 +347,30 @@ export default defineEventHandler(async (event) => {
     .filter((r) => r.relevanceScore >= relevanceThreshold)
     .sort((a, b) => b.relevanceScore - a.relevanceScore);
 
+  // Filter out results from the same auction site (useless for price comparison)
+  if (domain && domain !== 'unknown') {
+    const domainLower = domain.toLowerCase();
+    const originalCount = filteredResults.length;
+
+    filteredResults = filteredResults.filter((r) => {
+      if (!r.source) return true;
+      const sourceLower = r.source.toLowerCase();
+
+      // Extract base domain (e.g., "agorastore" from "agorastore.fr" or "www.agorastore.fr")
+      const auctionBaseDomain = domainLower.replace(/^www\./, '').split('.')[0];
+      const resultBaseDomain = sourceLower.replace(/^www\./, '').split('.')[0];
+
+      // Also check if the URL contains the auction site domain
+      const urlContainsAuctionSite = r.url?.toLowerCase().includes(auctionBaseDomain);
+
+      return resultBaseDomain !== auctionBaseDomain && !urlContainsAuctionSite;
+    });
+
+    if (filteredResults.length < originalCount) {
+      console.log(`[Compare] Filtered out ${originalCount - filteredResults.length} results from same auction site (${domain})`);
+    }
+  }
+
   // For vehicles, filter by price sanity check
   if (category === 'vehicle' && body.auctionPrice > 0) {
     const minReasonablePrice = body.auctionPrice * 0.2;

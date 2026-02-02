@@ -139,7 +139,7 @@ onMounted(async () => {
       <div class="text-center py-4">
         <UIcon name="i-lucide-loader-2" class="w-12 h-12 text-primary-500 animate-spin mx-auto mb-4" />
         <h2 class="text-xl font-bold mb-2">{{ t('loading') }}</h2>
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-zinc-600 dark:text-zinc-400">
           {{ t('extensionNowConnected') }}
         </p>
       </div>
@@ -152,7 +152,7 @@ onMounted(async () => {
           <UIcon name="i-lucide-check-circle" class="w-8 h-8 text-green-500" />
         </div>
         <h2 class="text-xl font-bold text-green-700 dark:text-green-400 mb-2">{{ t('extensionConnected') }}</h2>
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-zinc-600 dark:text-zinc-400">
           {{ t('canCloseTab') }}
         </p>
       </div>
@@ -165,7 +165,7 @@ onMounted(async () => {
           <UIcon name="i-lucide-alert-circle" class="w-8 h-8 text-amber-500" />
         </div>
         <h2 class="text-xl font-bold text-amber-700 dark:text-amber-400 mb-2">{{ t('subscriptionRequired') }}</h2>
-        <p class="text-gray-600 dark:text-gray-400 mb-4">
+        <p class="text-zinc-600 dark:text-zinc-400 mb-4">
           {{ t('subscribeToStart') }}
         </p>
         <UButton @click="connectExtension(extensionId!).then(s => extensionConnected = s)">
@@ -188,7 +188,7 @@ onMounted(async () => {
           <h3 class="font-semibold">
             {{ hasActiveSubscription ? t('extensionReady') : t('subscriptionRequired') }}
           </h3>
-          <p class="text-sm text-gray-500">
+          <p class="text-sm text-zinc-500">
             {{ hasActiveSubscription ? t('extensionConnectedReady') : t('subscribeToStart') }}
           </p>
         </div>
@@ -215,16 +215,16 @@ onMounted(async () => {
 
       <div class="space-y-4">
         <div class="flex justify-between items-center py-2 border-b border-default">
-          <span class="text-gray-500">{{ t('email') }}</span>
+          <span class="text-zinc-500">{{ t('email') }}</span>
           <span class="font-medium">{{ state.user?.email }}</span>
         </div>
         <div class="flex justify-between items-center py-2 border-b border-default">
-          <span class="text-gray-500">{{ t('memberSince') }}</span>
+          <span class="text-zinc-500">{{ t('memberSince') }}</span>
           <span class="font-medium">{{ formatDate(state.user?.createdAt ?? null) }}</span>
         </div>
         <div class="flex justify-between items-center py-2">
-          <span class="text-gray-500">{{ t('accountId') }}</span>
-          <span class="font-mono text-sm text-gray-400">{{ state.user?.id?.slice(0, 8) }}...</span>
+          <span class="text-zinc-500">{{ t('accountId') }}</span>
+          <span class="font-mono text-sm text-zinc-400">{{ state.user?.id?.slice(0, 8) }}...</span>
         </div>
       </div>
     </UCard>
@@ -238,14 +238,14 @@ onMounted(async () => {
           <div class="inline-flex items-center gap-3 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
             <button
               class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              :class="billingPeriod === 'monthly' ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-gray-600 dark:text-gray-400'"
+              :class="billingPeriod === 'monthly' ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-zinc-600 dark:text-zinc-400'"
               @click="billingPeriod = 'monthly'"
             >
               {{ t('monthly') }}
             </button>
             <button
               class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-              :class="billingPeriod === 'yearly' ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-gray-600 dark:text-gray-400'"
+              :class="billingPeriod === 'yearly' ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-zinc-600 dark:text-zinc-400'"
               @click="billingPeriod = 'yearly'"
             >
               {{ t('yearly') }}
@@ -270,7 +270,7 @@ onMounted(async () => {
               <div class="text-center">
                 <UBadge v-if="plan.planKey === 'pro'" color="primary" class="mb-2">{{ t('mostPopular') }}</UBadge>
                 <h3 class="text-xl font-bold">{{ plan.name }}</h3>
-                <p class="text-sm text-gray-500">{{ plan.description }}</p>
+                <p class="text-sm text-zinc-500">{{ plan.description }}</p>
               </div>
             </template>
 
@@ -278,15 +278,15 @@ onMounted(async () => {
               <template v-if="billingPeriod === 'monthly'">
                 <div class="text-3xl font-bold">
                   {{ formatPrice(plan.monthly.price, plan.monthly.currency) }}
-                  <span class="text-base font-normal text-gray-500">/{{ t('monthly').toLowerCase() }}</span>
+                  <span class="text-base font-normal text-zinc-500">/{{ t('monthly').toLowerCase() }}</span>
                 </div>
               </template>
               <template v-else>
                 <div class="text-3xl font-bold">
                   {{ formatPrice(plan.yearly.price, plan.yearly.currency) }}
-                  <span class="text-base font-normal text-gray-500">/{{ t('yearly').toLowerCase() }}</span>
+                  <span class="text-base font-normal text-zinc-500">/{{ t('yearly').toLowerCase() }}</span>
                 </div>
-                <div class="text-sm text-gray-500 mt-1">
+                <div class="text-sm text-zinc-500 mt-1">
                   {{ formatPrice(plan.yearly.monthlyEquivalent, plan.yearly.currency) }}/{{ t('monthly').toLowerCase() }}
                   <span class="text-green-600 font-medium ml-1">{{ t('saveUpTo', { percent: plan.yearly.savings }) }}</span>
                 </div>
