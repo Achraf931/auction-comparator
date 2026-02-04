@@ -78,7 +78,7 @@ async function handleSubmit() {
         <div class="text-center">
           <h1 class="text-2xl font-bold">{{ t('createAccount') }}</h1>
           <p class="text-sm text-zinc-500 mt-1">
-            {{ extensionId ? t('createToConnect') : t('getStarted') }}
+            {{ extensionId ? t('createToConnect') : t('getStartedWithApp') }}
           </p>
         </div>
       </template>

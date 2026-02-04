@@ -233,6 +233,9 @@ export class InterencheresAdapter extends BaseAdapter {
     // Detect if this is a vehicle listing
     const category = this.detectCategory(title, description)
 
+    // Extract year (for vehicles)
+    const year = category === 'vehicle' ? this.extractYear(title, description) : undefined
+
     // Calculate total price with fees
     const totalPrice = calculateTotalPrice(currentBid, this.defaultFees)
 
@@ -240,6 +243,7 @@ export class InterencheresAdapter extends BaseAdapter {
       title,
       brand,
       model,
+      year,
       category,
       condition,
       currentBid,
@@ -434,6 +438,43 @@ export class InterencheresAdapter extends BaseAdapter {
     }
 
     return 'product'
+  }
+
+  private extractYear(title: string, description?: string): number | undefined {
+    const text = `${title} ${description || ''}`
+
+    // Try to find year in title/description (e.g., "2019", "2020")
+    const yearMatch = text.match(/\b(20\d{2}|19\d{2})\b/)
+    if (yearMatch) {
+      const year = parseInt(yearMatch[1], 10)
+      const currentYear = new Date().getFullYear()
+      if (year >= 1990 && year <= currentYear + 1) {
+        console.log('[Interencheres Adapter] Found year:', year)
+        return year
+      }
+    }
+
+    // Try to find year near specific keywords
+    const pageText = document.body.innerText
+    const yearPatterns = [
+      /(?:année|annee|mise en circulation|1ère immat|immatriculation)[:\s]*(\d{4})/i,
+      /(\d{4})\s*(?:km|kms|kilomètres)/i,
+      /modèle\s+(\d{4})/i,
+    ]
+
+    for (const pattern of yearPatterns) {
+      const match = pageText.match(pattern)
+      if (match) {
+        const year = parseInt(match[1], 10)
+        const currentYear = new Date().getFullYear()
+        if (year >= 1990 && year <= currentYear + 1) {
+          console.log('[Interencheres Adapter] Found year from page:', year)
+          return year
+        }
+      }
+    }
+
+    return undefined
   }
 
 }

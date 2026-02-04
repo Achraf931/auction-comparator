@@ -264,13 +264,23 @@ export function normalizeHeuristic(request: NormalizeRequest): NormalizedResult 
     queryParts.push(...typeQualifiers);
   }
 
-  // For vehicles, extract year if present
-  if (isVehicle) {
+  // Extract year - use hint if provided, otherwise extract from title
+  let detectedYear: number | null = request.yearHint ?? null;
+  if (!detectedYear) {
     const yearMatch = originalTitle.match(/\b(19|20)\d{2}\b/);
     if (yearMatch) {
-      queryParts.push(yearMatch[0]);
+      detectedYear = parseInt(yearMatch[0], 10);
     }
+  }
 
+  // Add year to query if detected (important for vehicles, but also useful for other items)
+  if (detectedYear) {
+    queryParts.push(String(detectedYear));
+    console.log('[Normalizer] Using year:', detectedYear);
+  }
+
+  // For vehicles, also extract engine info
+  if (isVehicle) {
     // Extract engine info (1.6, 2.0, etc)
     const engineMatch = originalTitle.match(/\b(\d[.,]\d)\s*(l|L|dci|hdi|tdi|tsi|tfsi)?\b/i);
     if (engineMatch) {
@@ -357,6 +367,7 @@ export function normalizeHeuristic(request: NormalizeRequest): NormalizedResult 
     brand: normalizedBrand,
     model: normalizedModel,
     reference,
+    year: detectedYear,
     capacity,
     capacity_gb,
     condition,

@@ -16,8 +16,8 @@ const config = useRuntimeConfig();
     <h2>Description of Service</h2>
     <p>
       {{ config.public.appName }} provides a browser extension that compares auction prices
-      with market prices from various online sources. The service requires a paid subscription
-      for full access.
+      with market prices from various online sources. The service operates on a pay-as-you-go
+      credit system.
     </p>
 
     <h2>User Accounts</h2>
@@ -26,10 +26,12 @@ const config = useRuntimeConfig();
       You agree to notify us immediately of any unauthorized use of your account.
     </p>
 
-    <h2>Subscription and Payment</h2>
+    <h2>Credits and Payment</h2>
     <ul>
-      <li>Subscriptions are billed monthly</li>
-      <li>You can cancel your subscription at any time</li>
+      <li>Credits are purchased as one-time payments</li>
+      <li>Credits never expire once purchased</li>
+      <li>Each new price comparison consumes 1 credit</li>
+      <li>Cached results (recent lookups) are free</li>
       <li>Refunds are handled on a case-by-case basis</li>
       <li>We reserve the right to change prices with 30 days notice</li>
     </ul>

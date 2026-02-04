@@ -87,6 +87,10 @@ export class EncheresDomaineAdapter extends BaseAdapter {
     const model = this.extractModel(finalTitle)
     console.log('[EncheresDomaineAdapter] Extracted model:', model)
 
+    // Extract year (for vehicles)
+    const year = category === 'vehicle' ? this.extractYear(finalTitle) : undefined
+    console.log('[EncheresDomaineAdapter] Extracted year:', year)
+
     // Extract condition from description
     const condition = this.parseCondition(finalTitle)
 
@@ -98,6 +102,7 @@ export class EncheresDomaineAdapter extends BaseAdapter {
       title: this.cleanTitle(finalTitle),
       brand,
       model,
+      year,
       category,
       condition,
       currentBid: finalPrice,
@@ -472,6 +477,42 @@ export class EncheresDomaineAdapter extends BaseAdapter {
     }
 
     return clean
+  }
+
+  private extractYear(title: string): number | undefined {
+    // Try to find year in title (e.g., "2019", "2020")
+    const yearMatch = title.match(/\b(20\d{2}|19\d{2})\b/)
+    if (yearMatch) {
+      const year = parseInt(yearMatch[1], 10)
+      const currentYear = new Date().getFullYear()
+      if (year >= 1990 && year <= currentYear + 1) {
+        console.log('[EncheresDomaineAdapter] Found year in title:', year)
+        return year
+      }
+    }
+
+    // Try to find year near specific keywords in page content
+    const pageText = document.body.innerText
+    const yearPatterns = [
+      /(?:année|annee|mise en circulation|1ère immat|immatriculation)[:\s]*(\d{4})/i,
+      /(\d{4})\s*(?:km|kms|kilomètres)/i,
+      /modèle\s+(\d{4})/i,
+      /circulation[:\s]*\d{2}\/\d{2}\/(\d{4})/i, // Date format: DD/MM/YYYY
+    ]
+
+    for (const pattern of yearPatterns) {
+      const match = pageText.match(pattern)
+      if (match) {
+        const year = parseInt(match[1], 10)
+        const currentYear = new Date().getFullYear()
+        if (year >= 1990 && year <= currentYear + 1) {
+          console.log('[EncheresDomaineAdapter] Found year from page:', year)
+          return year
+        }
+      }
+    }
+
+    return undefined
   }
 
   getOverlayMountPoint(): Element | null {

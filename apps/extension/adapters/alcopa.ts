@@ -107,10 +107,14 @@ export class AlcopaAdapter extends BaseAdapter {
     // For Alcopa, price shown is the total (fees included)
     const totalPrice = currentBid
 
+    // Extract year from page content or title
+    const year = this.extractYear(title)
+
     const data: AuctionData = {
       title,
       brand,
       model: model || undefined,
+      year,
       category: 'vehicle', // Alcopa is a vehicle auction site
       condition: 'good', // Vehicles are typically used
       currentBid,
@@ -158,6 +162,41 @@ export class AlcopaAdapter extends BaseAdapter {
       // Capitalize first letter
       return match[1].charAt(0).toUpperCase() + match[1].slice(1)
     }
+    return undefined
+  }
+
+  private extractYear(title: string): number | undefined {
+    // Try to find year in title (e.g., "2019", "2020")
+    const yearMatch = title.match(/\b(20\d{2}|19\d{2})\b/)
+    if (yearMatch) {
+      const year = parseInt(yearMatch[1], 10)
+      // Sanity check: year should be between 1990 and current year + 1
+      const currentYear = new Date().getFullYear()
+      if (year >= 1990 && year <= currentYear + 1) {
+        console.log('[Alcopa Adapter] Found year:', year)
+        return year
+      }
+    }
+
+    // Try to find year in page content (look for "Année" or "Mise en circulation")
+    const pageText = document.body.innerText
+    const yearPatterns = [
+      /(?:année|annee|mise en circulation|1ère immat)[:\s]*(\d{4})/i,
+      /(\d{4})\s*(?:km|kms|kilomètres)/i,
+    ]
+
+    for (const pattern of yearPatterns) {
+      const match = pageText.match(pattern)
+      if (match) {
+        const year = parseInt(match[1], 10)
+        const currentYear = new Date().getFullYear()
+        if (year >= 1990 && year <= currentYear + 1) {
+          console.log('[Alcopa Adapter] Found year from page:', year)
+          return year
+        }
+      }
+    }
+
     return undefined
   }
 

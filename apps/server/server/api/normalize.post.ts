@@ -2,7 +2,7 @@ import type { NormalizeRequest, NormalizeResponse, NormalizeError } from '@aucti
 import { normalizeHeuristic, generateNormalizeCacheKey } from '../utils/normalizer-heuristic';
 import { getNormalizerProvider } from '../utils/normalizer-providers';
 import { getCachedNormalization, setCachedNormalization } from '../utils/normalize-cache';
-import { requireAuth, requireSubscription } from '../utils/auth';
+import { requireAuth } from '../utils/auth';
 
 export default defineEventHandler(async (event): Promise<NormalizeResponse | NormalizeError> => {
   // Require authentication
@@ -15,14 +15,6 @@ export default defineEventHandler(async (event): Promise<NormalizeResponse | Nor
       code: 'INVALID_REQUEST',
       message: 'Authentication required',
     };
-  }
-
-  // Require active subscription for AI normalization
-  try {
-    await requireSubscription(user);
-  } catch (error: any) {
-    // Allow heuristic normalization without subscription
-    console.log('[Normalize] No subscription, using heuristic only');
   }
 
   // Parse request body

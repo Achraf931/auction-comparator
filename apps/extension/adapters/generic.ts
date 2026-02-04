@@ -79,10 +79,16 @@ export class GenericAdapter extends BaseAdapter {
     // Extract description
     const description = this.findText(this.commonSelectors.description) || undefined
 
+    // Detect if this looks like a vehicle and extract year
+    const category = this.detectCategory(title, description)
+    const year = category === 'vehicle' ? this.extractYear(title, description) : undefined
+
     const totalPrice = calculateTotalPrice(currentBid, this.defaultFees)
 
     return {
       title,
+      year,
+      category,
       condition: 'unknown',
       currentBid,
       currency,
@@ -140,6 +146,39 @@ export class GenericAdapter extends BaseAdapter {
     if (host.endsWith('.co.uk')) return 'uk'
 
     return 'en'
+  }
+
+  private detectCategory(title: string, description?: string): 'vehicle' | 'product' {
+    const text = `${title} ${description || ''}`.toLowerCase()
+
+    const vehicleKeywords = [
+      'car', 'voiture', 'auto', 'vehicle', 'véhicule', 'vehicule',
+      'truck', 'camion', 'van', 'fourgon', 'motorcycle', 'moto',
+      'scooter', 'tractor', 'tracteur', 'forklift', 'chariot',
+      'km', 'mileage', 'kilométrage', 'immatriculation',
+    ]
+
+    if (vehicleKeywords.some(kw => text.includes(kw))) {
+      return 'vehicle'
+    }
+
+    return 'product'
+  }
+
+  private extractYear(title: string, description?: string): number | undefined {
+    const text = `${title} ${description || ''}`
+
+    // Try to find year in title/description (e.g., "2019", "2020")
+    const yearMatch = text.match(/\b(20\d{2}|19\d{2})\b/)
+    if (yearMatch) {
+      const year = parseInt(yearMatch[1], 10)
+      const currentYear = new Date().getFullYear()
+      if (year >= 1990 && year <= currentYear + 1) {
+        return year
+      }
+    }
+
+    return undefined
   }
 
 }

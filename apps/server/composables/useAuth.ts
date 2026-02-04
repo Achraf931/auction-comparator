@@ -1,4 +1,4 @@
-import type { MeResponse, UserInfo, SubscriptionInfo, FeatureFlags } from '@auction-comparator/shared';
+import type { MeResponse, UserInfo, CreditsInfo, FeatureFlags } from '@auction-comparator/shared';
 
 const EXTENSION_ID_KEY = 'auction_ext_id';
 
@@ -95,7 +95,7 @@ async function notifyExtensionLogout(): Promise<void> {
 
 interface AuthState {
   user: UserInfo | null;
-  subscription: SubscriptionInfo | null;
+  credits: CreditsInfo | null;
   features: FeatureFlags | null;
   loading: boolean;
   initialized: boolean;
@@ -105,7 +105,7 @@ interface AuthState {
 export function useAuth() {
   const state = useState<AuthState>('auth', () => ({
     user: null,
-    subscription: null,
+    credits: null,
     features: null,
     loading: false,
     initialized: false,
@@ -113,9 +113,10 @@ export function useAuth() {
   }));
 
   const isAuthenticated = computed(() => !!state.value.user);
-  const hasActiveSubscription = computed(() => {
-    const status = state.value.subscription?.status;
-    return status === 'active' || status === 'trialing';
+  const hasCredits = computed(() => {
+    const credits = state.value.credits;
+    if (!credits) return false;
+    return credits.balance > 0 || credits.freeAvailable;
   });
 
   async function fetchUser() {
@@ -135,14 +136,14 @@ export function useAuth() {
       });
 
       state.value.user = response.user;
-      state.value.subscription = response.subscription;
+      state.value.credits = response.credits;
       state.value.features = response.features;
     } catch (error: any) {
       if (error.statusCode !== 401) {
         state.value.error = error.message || 'Failed to fetch user';
       }
       state.value.user = null;
-      state.value.subscription = null;
+      state.value.credits = null;
       state.value.features = null;
     } finally {
       state.value.loading = false;
@@ -216,37 +217,10 @@ export function useAuth() {
     }
 
     state.value.user = null;
-    state.value.subscription = null;
+    state.value.credits = null;
     state.value.features = null;
 
     navigateTo('/login');
-  }
-
-  async function createCheckoutSession(priceId: string) {
-    try {
-      const response = await $fetch<{ success: true; checkoutUrl: string }>('/api/billing/create-checkout-session', {
-        method: 'POST',
-        credentials: 'include',
-        body: { priceId },
-      });
-
-      window.location.href = response.checkoutUrl;
-    } catch (error: any) {
-      state.value.error = error.data?.error?.message || 'Failed to create checkout session';
-    }
-  }
-
-  async function createPortalSession() {
-    try {
-      const response = await $fetch<{ success: true; portalUrl: string }>('/api/billing/create-portal-session', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      window.location.href = response.portalUrl;
-    } catch (error: any) {
-      state.value.error = error.data?.error?.message || 'Failed to create portal session';
-    }
   }
 
   /**
@@ -293,13 +267,11 @@ export function useAuth() {
   return {
     state,
     isAuthenticated,
-    hasActiveSubscription,
+    hasCredits,
     fetchUser,
     login,
     register,
     logout,
-    createCheckoutSession,
-    createPortalSession,
     connectExtension,
   };
 }

@@ -34,14 +34,14 @@ const config = useRuntimeConfig();
     <h3>Payment Information</h3>
     <p>
       Payment processing is handled by Stripe. We do not store your credit card information.
-      We only store your Stripe customer ID to manage your subscription.
+      We only store your Stripe customer ID to process credit purchases.
     </p>
 
     <h2>How We Use Information</h2>
     <p>We use the information we collect to:</p>
     <ul>
       <li>Provide and improve our price comparison service</li>
-      <li>Process payments and manage subscriptions</li>
+      <li>Process credit purchases</li>
       <li>Send important service updates</li>
       <li>Prevent abuse and enforce our terms of service</li>
     </ul>

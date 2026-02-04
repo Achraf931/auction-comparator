@@ -1,12 +1,13 @@
 import { randomBytes, createHash } from 'crypto';
 import bcrypt from 'bcrypt';
 import { eq, and, isNull, gt } from 'drizzle-orm';
-import { db, users, apiTokens, sessions, subscriptions } from '../db';
-import type { User, Subscription } from '../db';
-import type { MeResponse, FeatureFlags, SubscriptionInfo, UserInfo, PlanKey, BillingPeriod, UsageInfo } from '@auction-comparator/shared';
-import { hasActiveSubscription, hasValidPlan, DEFAULT_FEATURES, SUBSCRIBER_FEATURES } from '@auction-comparator/shared';
+import { db, users, apiTokens, sessions } from '../db';
+import type { User } from '../db';
+import type { MeResponse, FeatureFlags, UserInfo, CreditsInfo } from '@auction-comparator/shared';
+import { DEFAULT_FEATURES, CREDITS_FEATURES, hasCreditsAvailable as checkCredits } from '@auction-comparator/shared';
 import type { H3Event } from 'h3';
 import { getCookie, setCookie, deleteCookie } from 'h3';
+import { getCreditsSummary } from './credits';
 
 const SALT_ROUNDS = 12;
 const SESSION_COOKIE_NAME = 'auction_session';
@@ -277,15 +278,6 @@ export function clearSessionCookie(event: H3Event): void {
 }
 
 /**
- * Get user's subscription
- */
-export async function getUserSubscription(userId: string): Promise<Subscription | undefined> {
-  return db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, userId),
-  });
-}
-
-/**
  * Convert User to UserInfo for API response
  */
 export function toUserInfo(user: User): UserInfo {
@@ -297,54 +289,32 @@ export function toUserInfo(user: User): UserInfo {
 }
 
 /**
- * Convert Subscription to SubscriptionInfo for API response
+ * Get feature flags based on credits availability
  */
-export function toSubscriptionInfo(sub: Subscription | undefined): SubscriptionInfo | null {
-  if (!sub) {
-    return null;
-  }
-
-  return {
-    status: sub.status,
-    plan: sub.stripePriceId ?? null,
-    planKey: (sub.planKey as PlanKey) ?? null,
-    billingPeriod: (sub.billingPeriod as BillingPeriod) ?? null,
-    currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
-    cancelAtPeriodEnd: Boolean(sub.cancelAtPeriodEnd),
-  };
-}
-
-/**
- * Get feature flags based on subscription
- */
-export function getFeatureFlags(sub: Subscription | undefined): FeatureFlags {
-  if (hasActiveSubscription(sub?.status)) {
-    return SUBSCRIBER_FEATURES;
+export function getFeatureFlags(credits: CreditsInfo): FeatureFlags {
+  if (checkCredits(credits)) {
+    return CREDITS_FEATURES;
   }
   return DEFAULT_FEATURES;
 }
 
 /**
- * Build MeResponse from user and subscription
+ * Build MeResponse from user
  */
 export async function buildMeResponse(user: User): Promise<MeResponse> {
-  const sub = await getUserSubscription(user.id);
+  const creditsSummary = await getCreditsSummary(user.id);
 
-  // Import dynamically to avoid circular dependency
-  const { getUsageSummary } = await import('./quota');
-  const usage = await getUsageSummary(user.id);
+  const credits: CreditsInfo = {
+    balance: creditsSummary.balance,
+    freeAvailable: creditsSummary.freeAvailable,
+    totalPurchased: creditsSummary.totalPurchased,
+    totalConsumed: creditsSummary.totalConsumed,
+  };
 
   return {
     user: toUserInfo(user),
-    subscription: toSubscriptionInfo(sub),
-    features: getFeatureFlags(sub),
-    usage: {
-      freeRemaining: usage.freeRemaining,
-      freeUsed: usage.freeUsed,
-      freeTotal: usage.freeTotal,
-      monthlyQuota: usage.hasSubscription ? usage.quota : null,
-      monthlyUsed: usage.hasSubscription ? usage.freshFetchCount : null,
-    },
+    credits,
+    features: getFeatureFlags(credits),
   };
 }
 
@@ -387,66 +357,4 @@ export async function requireAuth(event: H3Event): Promise<User> {
     });
   }
   return user;
-}
-
-/**
- * Require active subscription - throws 402 if no active subscription
- */
-export async function requireSubscription(user: User): Promise<Subscription> {
-  const sub = await getUserSubscription(user.id);
-
-  if (!hasActiveSubscription(sub?.status)) {
-    throw createError({
-      statusCode: 402,
-      statusMessage: 'Payment Required',
-      data: {
-        success: false,
-        error: {
-          code: 'SUBSCRIPTION_REQUIRED',
-          message: 'An active subscription is required to use this feature',
-        },
-      },
-    });
-  }
-
-  return sub!;
-}
-
-/**
- * Require active subscription with valid plan - throws 402 if unknown_plan or no planKey
- */
-export async function requireValidPlan(user: User): Promise<Subscription> {
-  const sub = await getUserSubscription(user.id);
-
-  if (!hasValidPlan(sub?.status, sub?.planKey as PlanKey | null)) {
-    // Determine the specific error
-    if (!hasActiveSubscription(sub?.status)) {
-      throw createError({
-        statusCode: 402,
-        statusMessage: 'Payment Required',
-        data: {
-          success: false,
-          error: {
-            code: 'SUBSCRIPTION_REQUIRED',
-            message: 'An active subscription is required to use this feature',
-          },
-        },
-      });
-    }
-
-    // Has active subscription but unknown plan
-    throw createError({
-      statusCode: 402,
-      statusMessage: 'Payment Required',
-      data: {
-        success: false,
-        error: {
-          code: 'UNKNOWN_PLAN',
-          message: 'Your subscription plan could not be identified. Please contact support.',
-        },
-      },
-    });
-  }
-
-  return sub!;
 }

@@ -1,28 +1,4 @@
 /**
- * Subscription status values from Stripe
- */
-export type SubscriptionStatus =
-  | 'active'
-  | 'trialing'
-  | 'past_due'
-  | 'canceled'
-  | 'unpaid'
-  | 'incomplete'
-  | 'incomplete_expired'
-  | 'paused'
-  | 'unknown_plan';
-
-/**
- * Plan keys
- */
-export type PlanKey = 'starter' | 'pro' | 'business';
-
-/**
- * Billing period
- */
-export type BillingPeriod = 'monthly' | 'yearly';
-
-/**
  * User information returned from API
  */
 export interface UserInfo {
@@ -32,22 +8,21 @@ export interface UserInfo {
 }
 
 /**
- * Subscription information returned from API
+ * Credits information returned from API
  */
-export interface SubscriptionInfo {
-  status: SubscriptionStatus;
-  /** Stripe price ID (deprecated, use planKey) */
-  plan: string | null;
-  /** Plan key (starter, pro, business) */
-  planKey: PlanKey | null;
-  /** Billing period (monthly, yearly) */
-  billingPeriod: BillingPeriod | null;
-  currentPeriodEnd: string | null;
-  cancelAtPeriodEnd: boolean;
+export interface CreditsInfo {
+  /** Current credit balance */
+  balance: number;
+  /** Whether the free credit is still available */
+  freeAvailable: boolean;
+  /** Total purchased credits (lifetime) */
+  totalPurchased?: number;
+  /** Total consumed credits (lifetime) */
+  totalConsumed?: number;
 }
 
 /**
- * Feature flags based on subscription
+ * Feature flags for users
  */
 export interface FeatureFlags {
   compare: boolean;
@@ -55,29 +30,12 @@ export interface FeatureFlags {
 }
 
 /**
- * Usage info for free tier and subscription
- */
-export interface UsageInfo {
-  /** Free tier remaining (lifetime) */
-  freeRemaining: number;
-  /** Free tier used (lifetime) */
-  freeUsed: number;
-  /** Free tier total allowance */
-  freeTotal: number;
-  /** Monthly quota (if subscribed) */
-  monthlyQuota: number | null;
-  /** Monthly used (if subscribed) */
-  monthlyUsed: number | null;
-}
-
-/**
  * Response from GET /api/me
  */
 export interface MeResponse {
   user: UserInfo;
-  subscription: SubscriptionInfo | null;
+  credits: CreditsInfo;
   features: FeatureFlags;
-  usage: UsageInfo;
 }
 
 /**
@@ -138,19 +96,11 @@ export interface CreateTokenResponse {
 }
 
 /**
- * Checkout session response
+ * Checkout session response (for credit packs)
  */
 export interface CheckoutSessionResponse {
   success: true;
-  checkoutUrl: string;
-}
-
-/**
- * Portal session response
- */
-export interface PortalSessionResponse {
-  success: true;
-  portalUrl: string;
+  url: string;
 }
 
 /**
@@ -159,7 +109,7 @@ export interface PortalSessionResponse {
 export interface ExtensionAuthState {
   apiToken: string | null;
   user: UserInfo | null;
-  subscription: SubscriptionInfo | null;
+  credits: CreditsInfo | null;
   features: FeatureFlags | null;
   lastCheckedAt: number | null;
 }
@@ -173,29 +123,17 @@ export const DEFAULT_FEATURES: FeatureFlags = {
 };
 
 /**
- * Feature flags for active subscribers
+ * Feature flags for users with credits
  */
-export const SUBSCRIBER_FEATURES: FeatureFlags = {
+export const CREDITS_FEATURES: FeatureFlags = {
   compare: true,
   maxComparisonsPerDay: 100,
 };
 
 /**
- * Check if subscription allows feature access
+ * Check if user has credits available (balance > 0 or free credit available)
  */
-export function hasActiveSubscription(status: SubscriptionStatus | null | undefined): boolean {
-  return status === 'active' || status === 'trialing';
-}
-
-/**
- * Check if subscription has a valid plan (not unknown_plan)
- */
-export function hasValidPlan(status: SubscriptionStatus | null | undefined, planKey: PlanKey | null | undefined): boolean {
-  if (!hasActiveSubscription(status)) {
-    return false;
-  }
-  if (status === 'unknown_plan') {
-    return false;
-  }
-  return planKey != null;
+export function hasCreditsAvailable(credits: CreditsInfo | null | undefined): boolean {
+  if (!credits) return false;
+  return credits.balance > 0 || credits.freeAvailable;
 }

@@ -54,22 +54,7 @@ export function initializeDatabase() {
       revoked_at INTEGER
     );
 
-    CREATE TABLE IF NOT EXISTS subscriptions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-      stripe_subscription_id TEXT UNIQUE,
-      stripe_customer_id TEXT,
-      stripe_price_id TEXT,
-      plan_key TEXT,
-      billing_period TEXT,
-      status TEXT NOT NULL DEFAULT 'incomplete',
-      current_period_start INTEGER,
-      current_period_end INTEGER,
-      cancel_at_period_end INTEGER DEFAULT 0,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
+    -- Note: subscriptions table deprecated (credit pack model now)
 
     CREATE TABLE IF NOT EXISTS webhook_events (
       id TEXT PRIMARY KEY,
@@ -87,28 +72,8 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_api_tokens_user_id ON api_tokens(user_id);
     CREATE INDEX IF NOT EXISTS idx_api_tokens_token_hash ON api_tokens(token_hash);
     CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
-    CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 
-    -- Plan limits for subscription tiers
-    CREATE TABLE IF NOT EXISTS plan_limits (
-      id TEXT PRIMARY KEY,
-      plan_key TEXT NOT NULL UNIQUE,
-      monthly_fresh_fetch_quota INTEGER NOT NULL,
-      created_at INTEGER NOT NULL
-    );
-
-    -- Usage tracking per user per billing period
-    CREATE TABLE IF NOT EXISTS usage_periods (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      period_yyyymm TEXT NOT NULL,
-      fresh_fetch_count INTEGER NOT NULL DEFAULT 0,
-      cache_hit_count INTEGER NOT NULL DEFAULT 0,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_usage_periods_user_period ON usage_periods(user_id, period_yyyymm);
+    -- Note: plan_limits and usage_periods tables deprecated (credit pack model now)
 
     -- Global compare cache shared across users
     CREATE TABLE IF NOT EXISTS compare_cache_entries (
@@ -158,18 +123,53 @@ export function initializeDatabase() {
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_processed_events_provider_event ON processed_events(provider, event_id);
+
+    -- User credits balance (credit pack system)
+    CREATE TABLE IF NOT EXISTS user_credits (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      balance INTEGER NOT NULL DEFAULT 0,
+      free_credits_granted INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
+    );
+
+    -- Credit ledger (audit trail)
+    CREATE TABLE IF NOT EXISTS credit_ledger (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      delta INTEGER NOT NULL,
+      balance_after INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      related_object_type TEXT,
+      related_object_id TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_credit_ledger_user_created ON credit_ledger(user_id, created_at);
+
+    -- Purchases (credit pack purchases)
+    CREATE TABLE IF NOT EXISTS purchases (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL DEFAULT 'stripe',
+      stripe_checkout_session_id TEXT,
+      stripe_payment_intent_id TEXT UNIQUE,
+      pack_id TEXT NOT NULL,
+      credits_amount INTEGER NOT NULL,
+      amount_cents INTEGER NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at INTEGER NOT NULL,
+      paid_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_purchases_user ON purchases(user_id);
+    CREATE INDEX IF NOT EXISTS idx_purchases_stripe_session ON purchases(stripe_checkout_session_id);
   `);
 
   // Migrations: Add new columns if they don't exist
-  const migrations = [
-    { table: 'subscriptions', column: 'stripe_customer_id', type: 'TEXT' },
-    { table: 'subscriptions', column: 'plan_key', type: 'TEXT' },
-    { table: 'subscriptions', column: 'billing_period', type: 'TEXT' },
-    // Free tier columns
-    { table: 'users', column: 'free_fresh_fetch_remaining', type: 'INTEGER NOT NULL DEFAULT 10' },
-    { table: 'users', column: 'free_fresh_fetch_used', type: 'INTEGER NOT NULL DEFAULT 0' },
-    { table: 'users', column: 'free_fresh_fetch_granted_at', type: 'INTEGER' },
-  ];
+  // Note: subscription-related migrations removed (credit pack model now)
+  const migrations: { table: string; column: string; type: string }[] = [];
 
   for (const { table, column, type } of migrations) {
     try {

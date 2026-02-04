@@ -78,7 +78,7 @@ export default defineBackground(() => {
           sendResponse({
             type: 'AUTH_CHECK_RESPONSE',
             authenticated: false,
-            hasSubscription: false,
+            hasCredits: false,
           } satisfies AuthCheckResponseMessage)
         })
       return true
@@ -218,15 +218,16 @@ async function handleAuthCheck(): Promise<AuthCheckResponseMessage> {
 
   const authState = await getAuthState()
   const authenticated = !!authState.apiToken && !!authState.user
-  const status = authState.subscription?.status
-  const hasSubscription = status === 'active' || status === 'trialing'
+  const hasCredits = authState.credits
+    ? authState.credits.balance > 0 || authState.credits.freeAvailable
+    : false
 
   return {
     type: 'AUTH_CHECK_RESPONSE',
     authenticated,
-    hasSubscription,
+    hasCredits,
     user: authState.user ?? undefined,
-    subscription: authState.subscription ?? undefined,
+    credits: authState.credits ?? undefined,
   }
 }
 
@@ -266,7 +267,7 @@ async function handleSetToken(token: string): Promise<void> {
     saveAuthState({
       apiToken: token,
       user: data.user,
-      subscription: data.subscription,
+      credits: data.credits,
       features: data.features,
       lastCheckedAt: Date.now(),
     })
@@ -394,16 +395,18 @@ async function handleCompareRequest(
     }
   }
 
-  // Check subscription
-  const status = authState.subscription?.status
-  const hasSubscription = status === 'active' || status === 'trialing'
-  if (!hasSubscription) {
+  // Check credits (we allow the request to proceed - server will enforce credits)
+  // This is just for a quick early return with a clear message
+  const hasCredits = authState.credits
+    ? authState.credits.balance > 0 || authState.credits.freeAvailable
+    : false
+  if (!hasCredits) {
     return {
       type: 'COMPARE_RESPONSE',
       success: false,
       error: {
-        code: 'SUBSCRIPTION_REQUIRED',
-        message: 'An active subscription is required',
+        code: 'NO_CREDITS',
+        message: 'No credits available. Please purchase credits to continue.',
       },
     }
   }
@@ -443,9 +446,9 @@ async function handleCompareRequest(
     if (error instanceof RateLimitError) {
       errorResponse.code = 'RATE_LIMITED'
       errorResponse.retryAfter = error.retryAfter
-    } else if (error instanceof QuotaError) {
-      errorResponse.code = 'QUOTA_EXCEEDED';
-      (errorResponse as any).usage = error.usage
+    } else if (error instanceof CreditsError) {
+      errorResponse.code = 'NO_CREDITS';
+      (errorResponse as any).credits = error.credits
     } else if (error instanceof AuthError) {
       errorResponse.code = error.code as any
     }
@@ -472,6 +475,7 @@ async function executeCompareRequest(
     title: data.title,
     brand: data.brand,
     model: data.model,
+    year: data.year,
     condition: data.condition,
     currency: data.currency,
     locale: data.locale,
@@ -506,10 +510,10 @@ async function executeCompareRequest(
 
       if (response.status === 402) {
         const errorBody = await response.json().catch(() => ({}))
-        if (errorBody.code === 'QUOTA_EXCEEDED') {
-          throw new QuotaError(errorBody.message || 'Quota exceeded', errorBody.usage)
+        if (errorBody.code === 'NO_CREDITS') {
+          throw new CreditsError(errorBody.message || 'No credits available', errorBody.credits)
         }
-        throw new AuthError('Subscription required', 'SUBSCRIPTION_REQUIRED')
+        throw new CreditsError('No credits available', errorBody.credits)
       }
 
       if (response.status === 429) {
@@ -526,8 +530,8 @@ async function executeCompareRequest(
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
 
-      // Don't retry auth, rate limit, or quota errors
-      if (error instanceof RateLimitError || error instanceof AuthError || error instanceof QuotaError) {
+      // Don't retry auth, rate limit, or credits errors
+      if (error instanceof RateLimitError || error instanceof AuthError || error instanceof CreditsError) {
         throw error
       }
 
@@ -569,11 +573,11 @@ class AuthError extends Error {
 
 }
 
-class QuotaError extends Error {
+class CreditsError extends Error {
 
-  constructor(message: string, public usage?: any) {
+  constructor(message: string, public credits?: any) {
     super(message)
-    this.name = 'QuotaError'
+    this.name = 'CreditsError'
   }
 
 }

@@ -1,6 +1,40 @@
 <script setup lang="ts">
-const { isAuthenticated, hasActiveSubscription } = useAuth();
+const { isAuthenticated } = useAuth();
 const { t, locale } = useI18n();
+
+// Premium credit packs (synced with server registry)
+const creditPacks = [
+  { id: 'pack_1', credits: 1, priceEur: 1.49, descKey: 'quickTopUp' as const, badge: 'none' as const },
+  { id: 'pack_5', credits: 5, priceEur: 4.99, descKey: 'starterPack' as const, badge: 'none' as const },
+  { id: 'pack_10', credits: 10, priceEur: 8.99, descKey: 'regularUse' as const, badge: 'none' as const },
+  { id: 'pack_30', credits: 30, priceEur: 19.99, descKey: 'popularChoice' as const, badge: 'most_popular' as const },
+  { id: 'pack_100', credits: 100, priceEur: 49.99, descKey: 'bestValue' as const, badge: 'best_value' as const },
+];
+
+// Buy credits
+const buyingPack = ref<string | null>(null);
+
+async function buyPack(packId: string) {
+  if (!isAuthenticated.value) {
+    navigateTo('/login');
+    return;
+  }
+
+  buyingPack.value = packId;
+  try {
+    const response = await $fetch<{ url: string }>('/api/billing/checkout/credits', {
+      method: 'POST',
+      body: { packId },
+    });
+    if (response.url) {
+      window.location.href = response.url;
+    }
+  } catch (error) {
+    console.error('Failed to create checkout:', error);
+  } finally {
+    buyingPack.value = null;
+  }
+}
 
 const features = computed(() => [
   {
@@ -117,18 +151,9 @@ const faqs = computed(() => [
             {{ t('getStartedFree') }}
           </UButton>
           <UButton
-            v-else-if="!hasActiveSubscription"
-            to="/account"
-            size="xl"
-            class="px-8"
-          >
-            {{ t('subscribeNow') }}
-          </UButton>
-          <UButton
             v-else
             to="/account"
             size="xl"
-            variant="soft"
             class="px-8"
           >
             {{ t('goToAccount') }}
@@ -292,173 +317,93 @@ const faqs = computed(() => [
       </div>
     </section>
 
-    <!-- Pricing -->
+    <!-- Credit Packs Pricing -->
     <section>
       <div class="text-center mb-12">
         <h2 class="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
           {{ t('simpleTransparentPricing') }}
         </h2>
         <p class="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-          {{ t('pricingDesc') }}
+          {{ t('payOnlyForWhatYouUse') }}
+        </p>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
+          {{ t('oneComparisonExplainer') }}
         </p>
       </div>
 
-      <div class="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
-        <!-- Starter Plan -->
-        <UCard>
+      <div class="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 max-w-6xl mx-auto">
+        <UCard
+          v-for="pack in creditPacks"
+          :key="pack.id"
+          :class="[
+            pack.badge === 'most_popular' ? 'border-2 border-primary-500 dark:border-primary-400 relative' : '',
+            pack.badge === 'best_value' ? 'border-2 border-emerald-500 dark:border-emerald-400 relative' : ''
+          ]"
+          :ui="pack.badge !== 'none' ? { root: 'overflow-visible' } : {}"
+        >
+          <UBadge
+            v-if="pack.badge === 'most_popular'"
+            color="primary"
+            class="absolute -top-3 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
+          >
+            {{ t('mostPopular') }}
+          </UBadge>
+          <UBadge
+            v-if="pack.badge === 'best_value'"
+            color="success"
+            class="absolute -top-3 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
+          >
+            {{ t('bestValueBadge') }}
+          </UBadge>
           <div class="text-center">
-            <h3 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">{{ t('starterPlan') }}</h3>
-            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">{{ t('starterPlanDesc') }}</p>
+            <h3 class="text-lg font-bold text-zinc-900 dark:text-white mb-1">
+              {{ pack.credits }} {{ pack.credits === 1 ? t('comparison') : t('comparisons') }}
+            </h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">{{ t(pack.descKey) }}</p>
 
-            <div class="mb-4">
-              <span class="text-4xl font-bold text-zinc-900 dark:text-white">9.99</span>
-              <span class="text-xl font-bold text-zinc-900 dark:text-white">EUR</span>
-              <span class="text-zinc-500 dark:text-zinc-400">{{ t('perMonth') }}</span>
+            <div class="mb-1">
+              <span class="text-2xl font-bold text-zinc-900 dark:text-white">{{ pack.priceEur.toFixed(2) }}</span>
+              <span class="text-sm font-bold text-zinc-900 dark:text-white"> EUR</span>
             </div>
-
-            <UBadge color="neutral" variant="soft" class="mb-6">{{ t('freshChecksMonth', { count: 50 }) }}</UBadge>
-
-            <ul class="space-y-2 text-left text-sm mb-6">
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('allAuctionSites') }}</span>
-              </li>
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('unlimitedCacheHits') }}</span>
-              </li>
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('basicSupport') }}</span>
-              </li>
-            </ul>
+            <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
+              {{ (pack.priceEur / pack.credits).toFixed(2) }} EUR/{{ t('comparison') }}
+            </div>
 
             <UButton
               v-if="!isAuthenticated"
               to="/register"
-              variant="soft"
+              :variant="pack.badge !== 'none' ? 'solid' : 'soft'"
+              :color="pack.badge === 'best_value' ? 'success' : 'primary'"
+              size="sm"
               block
             >
               {{ t('getStarted') }}
             </UButton>
             <UButton
               v-else
-              to="/account?tab=subscription"
-              variant="soft"
+              :loading="buyingPack === pack.id"
+              :variant="pack.badge !== 'none' ? 'solid' : 'soft'"
+              :color="pack.badge === 'best_value' ? 'success' : 'primary'"
+              size="sm"
               block
+              @click="buyPack(pack.id)"
             >
-              {{ t('viewPlans') }}
-            </UButton>
-          </div>
-        </UCard>
-
-        <!-- Pro Plan -->
-        <UCard class="border-2 border-primary-500 dark:border-primary-400 relative" :ui="{ root: 'overflow-visible' }">
-          <UBadge color="primary" class="absolute -top-3 left-1/2 transform -translate-x-1/2">{{ t('mostPopular') }}</UBadge>
-          <div class="text-center">
-            <h3 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">{{ t('proPlan') }}</h3>
-            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">{{ t('proPlanDesc') }}</p>
-
-            <div class="mb-4">
-              <span class="text-4xl font-bold text-zinc-900 dark:text-white">19.99</span>
-              <span class="text-xl font-bold text-zinc-900 dark:text-white">EUR</span>
-              <span class="text-zinc-500 dark:text-zinc-400">{{ t('perMonth') }}</span>
-            </div>
-
-            <UBadge color="primary" variant="soft" class="mb-6">{{ t('freshChecksMonth', { count: 300 }) }}</UBadge>
-
-            <ul class="space-y-2 text-left text-sm mb-6">
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('allAuctionSites') }}</span>
-              </li>
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('unlimitedCacheHits') }}</span>
-              </li>
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('prioritySupport') }}</span>
-              </li>
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('searchHistory') }}</span>
-              </li>
-            </ul>
-
-            <UButton
-              v-if="!isAuthenticated"
-              to="/register"
-              block
-            >
-              {{ t('getStarted') }}
-            </UButton>
-            <UButton
-              v-else
-              to="/account?tab=subscription"
-              block
-            >
-              {{ t('viewPlans') }}
-            </UButton>
-          </div>
-        </UCard>
-
-        <!-- Business Plan -->
-        <UCard>
-          <div class="text-center">
-            <h3 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">{{ t('businessPlan') }}</h3>
-            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">{{ t('businessPlanDesc') }}</p>
-
-            <div class="mb-4">
-              <span class="text-4xl font-bold text-zinc-900 dark:text-white">49.99</span>
-              <span class="text-xl font-bold text-zinc-900 dark:text-white">EUR</span>
-              <span class="text-zinc-500 dark:text-zinc-400">{{ t('perMonth') }}</span>
-            </div>
-
-            <UBadge color="neutral" variant="soft" class="mb-6">{{ t('freshChecksMonth', { count: 2000 }) }}</UBadge>
-
-            <ul class="space-y-2 text-left text-sm mb-6">
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('allAuctionSites') }}</span>
-              </li>
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('unlimitedCacheHits') }}</span>
-              </li>
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('premiumSupport') }}</span>
-              </li>
-              <li class="flex items-center gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>{{ t('apiAccessComingSoon') }}</span>
-              </li>
-            </ul>
-
-            <UButton
-              v-if="!isAuthenticated"
-              to="/register"
-              variant="soft"
-              block
-            >
-              {{ t('getStarted') }}
-            </UButton>
-            <UButton
-              v-else
-              to="/account?tab=subscription"
-              variant="soft"
-              block
-            >
-              {{ t('viewPlans') }}
+              {{ t('buy') }}
             </UButton>
           </div>
         </UCard>
       </div>
 
-      <p class="text-center text-sm text-zinc-500 dark:text-zinc-400 mt-6">
-        {{ t('saveAnnualBilling') }}
-      </p>
+      <div class="text-center mt-8 space-y-2">
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+          <UIcon name="i-lucide-infinity" class="w-4 h-4 inline-block mr-1 text-green-500" />
+          {{ t('cacheHitsFree') }}
+        </p>
+        <p class="text-sm text-primary-500">
+          <UIcon name="i-lucide-gift" class="w-4 h-4 inline-block mr-1" />
+          {{ t('freeCreditsIncluded') }}
+        </p>
+      </div>
     </section>
 
     <!-- FAQ -->
@@ -486,27 +431,19 @@ const faqs = computed(() => [
         v-if="!isAuthenticated"
         to="/register"
         size="xl"
-        color="white"
-        class="px-8"
+        color="neutral"
+        variant="solid"
+        class="px-8 bg-white text-primary-600 hover:bg-white/90"
       >
         {{ t('getStartedNow') }}
-      </UButton>
-      <UButton
-        v-else-if="!hasActiveSubscription"
-        to="/account"
-        size="xl"
-        color="white"
-        class="px-8"
-      >
-        {{ t('subscribeNow') }}
       </UButton>
       <UButton
         v-else
         to="/account"
         size="xl"
-        color="white"
-        variant="outline"
-        class="px-8"
+        color="neutral"
+        variant="solid"
+        class="px-8 bg-white text-primary-600 hover:bg-white/90"
       >
         {{ t('goToDashboard') }}
       </UButton>

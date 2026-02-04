@@ -21,7 +21,7 @@ const messages = {
 
     // Register page
     createAccount: 'Create Account',
-    getStarted: 'Get started with Auction Comparator',
+    getStartedWithApp: 'Get started with Auction Comparator',
     createToConnect: 'Create an account to connect your extension',
     createConnectExtension: 'Create Account & Connect',
     passwordMinLength: 'Password must be at least 8 characters',
@@ -38,41 +38,55 @@ const messages = {
     // Account page
     account: 'Account',
     profile: 'Profile',
-    subscription: 'Subscription',
     profileInfo: 'Profile Information',
     memberSince: 'Member since',
     accountId: 'Account ID',
 
-    // Subscription
+    // Extension status
     extensionReady: 'Extension Ready',
     extensionConnectedReady: 'Your extension is connected and ready to use',
-    subscriptionRequired: 'Subscription Required',
-    subscribeToStart: 'Subscribe to start using the extension',
-    viewPlans: 'View Plans',
-    yourSubscription: 'Your Subscription',
-    annualBilling: 'Annual billing',
-    monthlyBilling: 'Monthly billing',
-    renewsOn: 'Renews on',
-    endsOn: 'Ends on',
-    subscriptionEnding: 'Subscription ending',
-    subscriptionWontRenew: 'Your subscription will not renew. Click "Manage Subscription" to reactivate.',
-    manageSubscription: 'Manage Subscription',
-    updatePaymentMethod: 'Update payment method, change plan, or cancel your subscription.',
-    subscribeNow: 'Subscribe Now',
-
-    // Pricing
-    monthly: 'Monthly',
-    yearly: 'Yearly',
-    saveUpTo: 'Save up to {percent}%',
-    freshChecksMonth: '{count} fresh checks/month',
-    mostPopular: 'Most Popular',
-    cancelAnytime: 'Cancel anytime. No questions asked.',
 
     // Checkout
-    checkoutSuccess: 'Subscription activated!',
-    checkoutSuccessDesc: 'Your subscription is now active. You can start using the extension.',
-    checkoutCancelled: 'Checkout cancelled',
-    checkoutCancelledDesc: 'Your subscription was not completed. You can try again below.',
+    creditsSuccess: 'Credits added!',
+    creditsSuccessDesc: 'Your credits have been added to your account.',
+    creditsCancelled: 'Purchase cancelled',
+    creditsCancelledDesc: 'Your credit purchase was not completed. You can try again below.',
+
+    // Credits
+    credits: 'Credits',
+    yourCredits: 'Your Credits',
+    creditsBalance: 'Credit Balance',
+    buyCredits: 'Buy Credits',
+    buy: 'Buy',
+    creditPacks: 'Credit Packs',
+    payAsYouGo: 'Pay as you go',
+    payOnlyForWhatYouUse: 'Pay only for what you use. No subscription required.',
+    oneComparisonExplainer: '1 credit = 1 new price comparison',
+    cacheHitsFree: 'Cache hits are always free - you only pay for fresh price checks.',
+    perCredit: '/credit',
+    comparison: 'comparison',
+    comparisons: 'comparisons',
+    pack1: '1 Credit',
+    pack5: '5 Credits',
+    pack10: '10 Credits',
+    pack30: '30 Credits',
+    pack100: '100 Credits',
+    quickTopUp: 'Quick top-up',
+    starterPack: 'Starter pack',
+    regularUse: 'Regular use',
+    popularChoice: 'Most popular',
+    bestValue: 'Best value',
+    bestValueBadge: 'Best Value',
+    freeCreditsIncluded: '1 free comparison for new users',
+    purchaseHistory: 'Purchase History',
+    noPurchasesYet: 'No purchases yet',
+    noPurchasesDesc: 'Your purchase history will appear here once you buy credits.',
+    totalPurchased: 'Total purchased',
+    totalConsumed: 'Total consumed',
+    freeCredit: 'free credit',
+    noCredits: 'No credits remaining',
+    noCreditsHint: 'Purchase credits to continue making price comparisons.',
+    noCreditsRemaining: 'No credits left',
 
     // History page
     history: 'History',
@@ -112,16 +126,10 @@ const messages = {
     aboveMarket: 'above market',
     atMarket: 'at market price',
 
-    // Free tier
-    freeTrial: 'Free Trial',
-    freeTrialDesc: '{count} free web searches',
-    freeSearchesRemaining: '{count} free searches remaining',
-    freeSearchExplanation: 'One search = one price check on the internet. Recent results are reused automatically.',
-    freeExhausted: 'Free trial ended',
-    freeExhaustedDesc: 'Your {count} free searches have been used. Subscribe to continue.',
+    // Free credit info
+    freeSearchExplanation: 'One comparison = one price check on the internet. Recent results are reused automatically.',
     cachedResult: 'Cached result',
     cachedResultFree: 'This is a cached result (free)',
-    upgradeNow: 'Upgrade Now',
 
     // Landing page - Hero
     smartAuctionPriceAnalysis: 'Smart Auction Price Analysis',
@@ -174,22 +182,10 @@ const messages = {
 
     // Landing page - Pricing
     simpleTransparentPricing: 'Simple, Transparent Pricing',
-    pricingDesc: 'Choose the plan that fits your auction hunting style.',
-    starterPlan: 'Starter',
-    starterPlanDesc: 'For casual buyers',
-    proPlan: 'Pro',
-    proPlanDesc: 'For regular hunters',
-    businessPlan: 'Business',
-    businessPlanDesc: 'For power users',
-    perMonth: '/month',
+    pricingDesc: 'Pay only for what you use. No subscription required.',
     allAuctionSites: 'All auction sites',
     unlimitedCacheHits: 'Unlimited cache hits',
-    basicSupport: 'Basic support',
-    prioritySupport: 'Priority support',
-    premiumSupport: 'Premium support',
-    apiAccessComingSoon: 'API access (coming soon)',
     getStarted: 'Get Started',
-    saveAnnualBilling: 'Save up to 30% with annual billing. Cancel anytime.',
 
     // Landing page - FAQ
     faq: 'Frequently Asked Questions',
@@ -199,8 +195,8 @@ const messages = {
     faqAnswer2: 'Currently, our extension works on Google Chrome and other Chromium-based browsers like Edge, Brave, and Opera.',
     faqQuestion3: 'Is my data safe?',
     faqAnswer3: 'Absolutely. We only send product information (title, brand, model) to our servers for price lookup. We never track your browsing history or store personal data.',
-    faqQuestion4: 'Can I cancel my subscription anytime?',
-    faqAnswer4: 'Yes, you can cancel your subscription at any time from your account page. No questions asked, no hidden fees.',
+    faqQuestion4: 'Do credits expire?',
+    faqAnswer4: 'No, your credits never expire. Use them whenever you need to compare prices at auctions.',
 
     // Landing page - Final CTA
     readyToSave: 'Ready to Save Money on Auctions?',
@@ -230,7 +226,7 @@ const messages = {
 
     // Register page
     createAccount: 'Créer un compte',
-    getStarted: 'Commencez avec Auction Comparator',
+    getStartedWithApp: 'Commencez avec Auction Comparator',
     createToConnect: 'Créez un compte pour relier votre extension',
     createConnectExtension: 'Créer un compte et relier',
     passwordMinLength: 'Le mot de passe doit contenir au moins 8 caractères',
@@ -247,41 +243,55 @@ const messages = {
     // Account page
     account: 'Compte',
     profile: 'Profil',
-    subscription: 'Abonnement',
     profileInfo: 'Informations du profil',
     memberSince: 'Membre depuis',
     accountId: 'ID du compte',
 
-    // Subscription
+    // Extension status
     extensionReady: 'Extension prête',
     extensionConnectedReady: 'Votre extension est connectée et prête à être utilisée',
-    subscriptionRequired: 'Abonnement requis',
-    subscribeToStart: 'Abonnez-vous pour commencer à utiliser l\'extension',
-    viewPlans: 'Voir les offres',
-    yourSubscription: 'Votre abonnement',
-    annualBilling: 'Facturation annuelle',
-    monthlyBilling: 'Facturation mensuelle',
-    renewsOn: 'Renouvellement le',
-    endsOn: 'Fin le',
-    subscriptionEnding: 'Abonnement en cours de fin',
-    subscriptionWontRenew: 'Votre abonnement ne sera pas renouvelé. Cliquez sur "Gérer l\'abonnement" pour réactiver.',
-    manageSubscription: 'Gérer l\'abonnement',
-    updatePaymentMethod: 'Modifier le moyen de paiement, changer d\'offre ou annuler votre abonnement.',
-    subscribeNow: "S'abonner maintenant",
-
-    // Pricing
-    monthly: 'Mensuel',
-    yearly: 'Annuel',
-    saveUpTo: 'Économisez jusqu\'à {percent}%',
-    freshChecksMonth: '{count} recherches/mois',
-    mostPopular: 'Le plus populaire',
-    cancelAnytime: 'Annulez à tout moment. Sans engagement.',
 
     // Checkout
-    checkoutSuccess: 'Abonnement activé !',
-    checkoutSuccessDesc: 'Votre abonnement est maintenant actif. Vous pouvez utiliser l\'extension.',
-    checkoutCancelled: 'Paiement annulé',
-    checkoutCancelledDesc: 'Votre abonnement n\'a pas été finalisé. Vous pouvez réessayer ci-dessous.',
+    creditsSuccess: 'Crédits ajoutés !',
+    creditsSuccessDesc: 'Vos crédits ont été ajoutés à votre compte.',
+    creditsCancelled: 'Achat annulé',
+    creditsCancelledDesc: 'Votre achat de crédits n\'a pas été finalisé. Vous pouvez réessayer ci-dessous.',
+
+    // Credits
+    credits: 'Crédits',
+    yourCredits: 'Vos crédits',
+    creditsBalance: 'Solde de crédits',
+    buyCredits: 'Acheter des crédits',
+    buy: 'Acheter',
+    creditPacks: 'Packs de crédits',
+    payAsYouGo: 'Payez à l\'usage',
+    payOnlyForWhatYouUse: 'Payez uniquement ce que vous utilisez. Pas d\'abonnement requis.',
+    oneComparisonExplainer: '1 crédit = 1 nouvelle comparaison de prix',
+    cacheHitsFree: 'Les résultats en cache sont toujours gratuits - vous ne payez que pour les nouvelles recherches.',
+    perCredit: '/crédit',
+    comparison: 'comparaison',
+    comparisons: 'comparaisons',
+    pack1: '1 Crédit',
+    pack5: '5 Crédits',
+    pack10: '10 Crédits',
+    pack30: '30 Crédits',
+    pack100: '100 Crédits',
+    quickTopUp: 'Recharge rapide',
+    starterPack: 'Pack découverte',
+    regularUse: 'Usage régulier',
+    popularChoice: 'Le plus populaire',
+    bestValue: 'Meilleure offre',
+    bestValueBadge: 'Meilleure Offre',
+    freeCreditsIncluded: '1 comparaison gratuite pour les nouveaux utilisateurs',
+    purchaseHistory: 'Historique des achats',
+    noPurchasesYet: 'Aucun achat pour le moment',
+    noPurchasesDesc: 'Votre historique d\'achats apparaîtra ici une fois que vous aurez acheté des crédits.',
+    totalPurchased: 'Total acheté',
+    totalConsumed: 'Total consommé',
+    freeCredit: 'crédit gratuit',
+    noCredits: 'Aucun crédit restant',
+    noCreditsHint: 'Achetez des crédits pour continuer à comparer les prix.',
+    noCreditsRemaining: 'Plus de crédits',
 
     // History page
     history: 'Historique',
@@ -321,16 +331,10 @@ const messages = {
     aboveMarket: 'au-dessus du marché',
     atMarket: 'au prix du marché',
 
-    // Free tier
-    freeTrial: 'Essai gratuit',
-    freeTrialDesc: '{count} recherches web gratuites',
-    freeSearchesRemaining: '{count} recherches gratuites restantes',
-    freeSearchExplanation: 'Une recherche = une vérification de prix sur Internet. Les résultats récents sont réutilisés automatiquement.',
-    freeExhausted: 'Essai gratuit terminé',
-    freeExhaustedDesc: 'Vos {count} recherches gratuites ont été utilisées. Abonnez-vous pour continuer.',
+    // Free credit info
+    freeSearchExplanation: 'Une comparaison = une vérification de prix sur Internet. Les résultats récents sont réutilisés automatiquement.',
     cachedResult: 'Résultat en cache',
     cachedResultFree: 'Ceci est un résultat enregistré (gratuit)',
-    upgradeNow: 'S\'abonner maintenant',
 
     // Landing page - Hero
     smartAuctionPriceAnalysis: 'Analyse intelligente des prix d\'enchères',
@@ -339,7 +343,6 @@ const messages = {
     heroTitle3: '',
     heroDescription: 'Notre extension de navigateur compare instantanément les prix des enchères avec les prix réels du marché. Sachez si vous faites une bonne affaire ou si vous payez trop cher avant de miser.',
     getStartedFree: 'Commencer gratuitement',
-    goToAccount: 'Aller au compte',
 
     // Landing page - Stats
     auctionSites: 'Sites d\'enchères',
@@ -384,22 +387,10 @@ const messages = {
 
     // Landing page - Pricing
     simpleTransparentPricing: 'Tarification simple et transparente',
-    pricingDesc: 'Choisissez le forfait adapté à votre style de chasse aux enchères.',
-    starterPlan: 'Starter',
-    starterPlanDesc: 'Pour les acheteurs occasionnels',
-    proPlan: 'Pro',
-    proPlanDesc: 'Pour les chasseurs réguliers',
-    businessPlan: 'Business',
-    businessPlanDesc: 'Pour les utilisateurs intensifs',
-    perMonth: '/mois',
+    pricingDesc: 'Payez uniquement ce que vous utilisez. Pas d\'abonnement requis.',
     allAuctionSites: 'Tous les sites d\'enchères',
     unlimitedCacheHits: 'Résultats en cache illimités',
-    basicSupport: 'Support basique',
-    prioritySupport: 'Support prioritaire',
-    premiumSupport: 'Support premium',
-    apiAccessComingSoon: 'Accès API (bientôt disponible)',
     getStarted: 'Commencer',
-    saveAnnualBilling: 'Économisez jusqu\'à 30% avec la facturation annuelle. Annulez à tout moment.',
 
     // Landing page - FAQ
     faq: 'Questions fréquentes',
@@ -409,8 +400,8 @@ const messages = {
     faqAnswer2: 'Actuellement, notre extension fonctionne sur Google Chrome et d\'autres navigateurs basés sur Chromium comme Edge, Brave et Opera.',
     faqQuestion3: 'Mes données sont-elles en sécurité ?',
     faqAnswer3: 'Absolument. Nous n\'envoyons que les informations produit (titre, marque, modèle) à nos serveurs pour la recherche de prix. Nous ne suivons jamais votre historique de navigation et ne stockons pas de données personnelles.',
-    faqQuestion4: 'Puis-je annuler mon abonnement à tout moment ?',
-    faqAnswer4: 'Oui, vous pouvez annuler votre abonnement à tout moment depuis votre page de compte. Sans questions, sans frais cachés.',
+    faqQuestion4: 'Les crédits expirent-ils ?',
+    faqAnswer4: 'Non, vos crédits n\'expirent jamais. Utilisez-les quand vous voulez pour comparer les prix aux enchères.',
 
     // Landing page - Final CTA
     readyToSave: 'Prêt à économiser sur les enchères ?',

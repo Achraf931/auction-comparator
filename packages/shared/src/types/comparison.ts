@@ -11,6 +11,8 @@ export interface CompareRequest {
   brand?: string;
   /** Model name/number if known */
   model?: string;
+  /** Year (e.g., car model year, first circulation date) */
+  year?: number;
   /** Item condition for filtering results */
   condition?: ItemCondition;
   /** Currency for price comparison */
@@ -29,7 +31,7 @@ export interface CompareRequest {
   extractionConfidence?: ExtractionConfidenceLevel;
   /** Whether to use AI normalization (default: auto based on confidence) */
   useNormalization?: boolean;
-  /** Force a fresh fetch, bypassing cache (consumes quota) */
+  /** Force a fresh fetch, bypassing cache (consumes 1 credit) */
   forceRefresh?: boolean;
 }
 
@@ -83,32 +85,6 @@ export interface Verdict {
 }
 
 /**
- * Usage summary for current billing period
- */
-export interface UsageSummary {
-  /** Current billing period (YYYY-MM) */
-  period: string;
-  /** Fresh fetches used this period */
-  freshFetchCount: number;
-  /** Cache hits this period */
-  cacheHitCount: number;
-  /** Monthly quota for fresh fetches */
-  quota: number;
-  /** Plan key */
-  plan: string;
-  /** Billing period (monthly, yearly) */
-  billingPeriod: 'monthly' | 'yearly' | null;
-  /** Free tier remaining (lifetime allowance) */
-  freeRemaining?: number;
-  /** Free tier used (lifetime) */
-  freeUsed?: number;
-  /** Free tier total allowance */
-  freeTotal?: number;
-  /** Whether user has an active subscription */
-  hasSubscription?: boolean;
-}
-
-/**
  * Cache metadata in response
  */
 export interface CacheMetadata {
@@ -144,6 +120,16 @@ export interface NormalizedInfo {
   signatures: ProductSignatures;
 }
 
+/**
+ * Credits info for API responses
+ */
+export interface CreditsInfo {
+  /** Current credit balance */
+  balance: number;
+  /** Whether free credit is still available */
+  freeAvailable: boolean;
+}
+
 export interface CompareResponse {
   /** The search query used */
   queryUsed: string;
@@ -163,19 +149,19 @@ export interface CompareResponse {
   cache?: CacheMetadata;
   /** Normalized product info */
   normalized?: NormalizedInfo;
-  /** Usage summary for quota tracking */
-  usage?: UsageSummary;
+  /** Credits info */
+  credits?: CreditsInfo;
 }
 
 export interface CompareError {
   /** Error code */
-  code: 'RATE_LIMITED' | 'API_ERROR' | 'NO_RESULTS' | 'INVALID_REQUEST' | 'UNAUTHORIZED' | 'SUBSCRIPTION_REQUIRED' | 'UNKNOWN_PLAN' | 'QUOTA_EXCEEDED' | 'FREE_EXHAUSTED';
+  code: 'RATE_LIMITED' | 'API_ERROR' | 'NO_RESULTS' | 'INVALID_REQUEST' | 'UNAUTHORIZED' | 'NO_CREDITS';
   /** Human-readable error message */
   message: string;
   /** Retry after this many seconds (for rate limiting) */
   retryAfter?: number;
-  /** Usage summary when quota exceeded */
-  usage?: UsageSummary;
+  /** Credits info when NO_CREDITS error */
+  credits?: CreditsInfo;
   /** Whether cache-only mode is available */
   cacheOnlyAvailable?: boolean;
 }
@@ -224,32 +210,4 @@ export interface HistoryResponse {
   page: number;
   /** Page size */
   pageSize: number;
-}
-
-/**
- * Usage API response
- */
-export interface UsageResponse {
-  /** Current period */
-  period: string;
-  /** Fresh fetches used */
-  freshFetchCount: number;
-  /** Cache hits */
-  cacheHitCount: number;
-  /** Monthly quota */
-  quota: number;
-  /** Plan key */
-  plan: string;
-  /** Billing period (monthly, yearly) */
-  billingPeriod: 'monthly' | 'yearly' | null;
-  /** Days remaining in period */
-  daysRemaining: number;
-  /** Free tier remaining (lifetime) */
-  freeRemaining?: number;
-  /** Free tier used (lifetime) */
-  freeUsed?: number;
-  /** Free tier total allowance */
-  freeTotal?: number;
-  /** Whether user has an active subscription */
-  hasSubscription?: boolean;
 }

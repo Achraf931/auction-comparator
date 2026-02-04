@@ -1,19 +1,12 @@
 import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { relations } from 'drizzle-orm';
 
-// Free tier default allowance (configurable via env)
-export const FREE_FRESH_FETCH_ALLOWANCE = parseInt(process.env.FREE_FRESH_FETCH_ALLOWANCE || '10', 10);
-
 // Users table
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(), // UUID
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   stripeCustomerId: text('stripe_customer_id').unique(),
-  // Free tier allowance (lifetime, one-time)
-  freeFreshFetchRemaining: integer('free_fresh_fetch_remaining').notNull().default(FREE_FRESH_FETCH_ALLOWANCE),
-  freeFreshFetchUsed: integer('free_fresh_fetch_used').notNull().default(0),
-  freeFreshFetchGrantedAt: integer('free_fresh_fetch_granted_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
@@ -28,28 +21,6 @@ export const apiTokens = sqliteTable('api_tokens', {
   lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   revokedAt: integer('revoked_at', { mode: 'timestamp' }), // null = active
-});
-
-// Billing period type
-export type BillingPeriod = 'monthly' | 'yearly';
-
-// Subscriptions table
-export const subscriptions = sqliteTable('subscriptions', {
-  id: text('id').primaryKey(), // UUID
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
-  stripeSubscriptionId: text('stripe_subscription_id').unique(),
-  stripeCustomerId: text('stripe_customer_id'),
-  stripePriceId: text('stripe_price_id'),
-  planKey: text('plan_key', { enum: ['starter', 'pro', 'business'] }),
-  billingPeriod: text('billing_period', { enum: ['monthly', 'yearly'] }),
-  status: text('status', {
-    enum: ['active', 'trialing', 'past_due', 'canceled', 'unpaid', 'incomplete', 'incomplete_expired', 'paused', 'unknown_plan'],
-  }).notNull().default('incomplete'),
-  currentPeriodStart: integer('current_period_start', { mode: 'timestamp' }),
-  currentPeriodEnd: integer('current_period_end', { mode: 'timestamp' }),
-  cancelAtPeriodEnd: integer('cancel_at_period_end', { mode: 'boolean' }).default(false),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
 // Processed Stripe webhook events for idempotency
@@ -68,11 +39,9 @@ export const sessions = sqliteTable('sessions', {
 });
 
 // Relations
-export const usersRelations = relations(users, ({ many, one }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
   apiTokens: many(apiTokens),
-  subscription: one(subscriptions),
   sessions: many(sessions),
-  usagePeriods: many(usagePeriods),
   searchHistory: many(searchHistory),
 }));
 
@@ -83,40 +52,12 @@ export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
   }),
 }));
 
-export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
-  user: one(users, {
-    fields: [subscriptions.userId],
-    references: [users.id],
-  }),
-}));
-
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
     references: [users.id],
   }),
 }));
-
-// Plan limits for subscription tiers
-export const planLimits = sqliteTable('plan_limits', {
-  id: text('id').primaryKey(), // UUID
-  planKey: text('plan_key', { enum: ['starter', 'pro', 'business'] }).notNull().unique(),
-  monthlyFreshFetchQuota: integer('monthly_fresh_fetch_quota').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-});
-
-// Usage tracking per user per billing period
-export const usagePeriods = sqliteTable('usage_periods', {
-  id: text('id').primaryKey(), // UUID
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  periodYyyymm: text('period_yyyymm').notNull(), // e.g., "2026-02"
-  freshFetchCount: integer('fresh_fetch_count').notNull().default(0),
-  cacheHitCount: integer('cache_hit_count').notNull().default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-}, (table) => [
-  uniqueIndex('usage_periods_user_period_idx').on(table.userId, table.periodYyyymm),
-]);
 
 // Global compare cache shared across users
 export const compareCacheEntries = sqliteTable('compare_cache_entries', {
@@ -167,16 +108,6 @@ export const processedEvents = sqliteTable('processed_events', {
   uniqueIndex('processed_events_provider_event_idx').on(table.provider, table.eventId),
 ]);
 
-// Relations for new tables
-export const planLimitsRelations = relations(planLimits, ({ }) => ({}));
-
-export const usagePeriodsRelations = relations(usagePeriods, ({ one }) => ({
-  user: one(users, {
-    fields: [usagePeriods.userId],
-    references: [users.id],
-  }),
-}));
-
 export const compareCacheEntriesRelations = relations(compareCacheEntries, ({ many }) => ({
   searchHistories: many(searchHistory),
 }));
@@ -192,28 +123,102 @@ export const searchHistoryRelations = relations(searchHistory, ({ one }) => ({
   }),
 }));
 
+// ============================================================
+// Credit Pack System Tables
+// ============================================================
+
+// User credits balance
+export const userCredits = sqliteTable('user_credits', {
+  userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  balance: integer('balance').notNull().default(0),
+  freeCreditsGranted: integer('free_credits_granted').notNull().default(0), // 0 = not granted, 1 = granted
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
+// Credit ledger entry types
+export type CreditLedgerType = 'grant_free' | 'purchase' | 'consume' | 'refund' | 'admin_adjust';
+
+// Append-only credit ledger (audit trail)
+export const creditLedger = sqliteTable('credit_ledger', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type', { enum: ['grant_free', 'purchase', 'consume', 'refund', 'admin_adjust'] }).notNull(),
+  delta: integer('delta').notNull(), // +10, -1, etc.
+  balanceAfter: integer('balance_after').notNull(),
+  reason: text('reason').notNull(),
+  relatedObjectType: text('related_object_type'), // 'purchase', 'comparison', 'stripe_session'
+  relatedObjectId: text('related_object_id'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => [
+  index('credit_ledger_user_created_idx').on(table.userId, table.createdAt),
+]);
+
+// Credit pack IDs
+export type CreditPackId = 'pack_1' | 'pack_5' | 'pack_10' | 'pack_30' | 'pack_100';
+
+// Purchase status
+export type PurchaseStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+
+// Purchase records
+export const purchases = sqliteTable('purchases', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull().default('stripe'),
+  stripeCheckoutSessionId: text('stripe_checkout_session_id'),
+  stripePaymentIntentId: text('stripe_payment_intent_id').unique(), // Idempotency key
+  packId: text('pack_id', { enum: ['pack_1', 'pack_5', 'pack_10', 'pack_30', 'pack_100'] }).notNull(),
+  creditsAmount: integer('credits_amount').notNull(),
+  amountCents: integer('amount_cents').notNull(),
+  currency: text('currency').notNull().default('EUR'),
+  status: text('status', { enum: ['pending', 'paid', 'failed', 'refunded'] }).notNull().default('pending'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  paidAt: integer('paid_at', { mode: 'timestamp' }),
+}, (table) => [
+  index('purchases_user_idx').on(table.userId),
+  index('purchases_stripe_session_idx').on(table.stripeCheckoutSessionId),
+]);
+
+// Relations for credit tables
+export const userCreditsRelations = relations(userCredits, ({ one }) => ({
+  user: one(users, {
+    fields: [userCredits.userId],
+    references: [users.id],
+  }),
+}));
+
+export const creditLedgerRelations = relations(creditLedger, ({ one }) => ({
+  user: one(users, {
+    fields: [creditLedger.userId],
+    references: [users.id],
+  }),
+}));
+
+export const purchasesRelations = relations(purchases, ({ one }) => ({
+  user: one(users, {
+    fields: [purchases.userId],
+    references: [users.id],
+  }),
+}));
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type NewApiToken = typeof apiTokens.$inferInsert;
-export type Subscription = typeof subscriptions.$inferSelect;
-export type NewSubscription = typeof subscriptions.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
-export type PlanLimit = typeof planLimits.$inferSelect;
-export type NewPlanLimit = typeof planLimits.$inferInsert;
-export type UsagePeriod = typeof usagePeriods.$inferSelect;
-export type NewUsagePeriod = typeof usagePeriods.$inferInsert;
 export type CompareCacheEntry = typeof compareCacheEntries.$inferSelect;
 export type NewCompareCacheEntry = typeof compareCacheEntries.$inferInsert;
 export type SearchHistory = typeof searchHistory.$inferSelect;
 export type NewSearchHistory = typeof searchHistory.$inferInsert;
 export type ProcessedEvent = typeof processedEvents.$inferSelect;
 export type NewProcessedEvent = typeof processedEvents.$inferInsert;
-
-// Plan key type
-export type PlanKey = 'starter' | 'pro' | 'business';
+export type UserCredits = typeof userCredits.$inferSelect;
+export type NewUserCredits = typeof userCredits.$inferInsert;
+export type CreditLedgerEntry = typeof creditLedger.$inferSelect;
+export type NewCreditLedgerEntry = typeof creditLedger.$inferInsert;
+export type Purchase = typeof purchases.$inferSelect;
+export type NewPurchase = typeof purchases.$inferInsert;
 
 // Compare source type
 export type CompareSource = 'cache_strict' | 'cache_loose' | 'fresh_fetch';

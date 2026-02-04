@@ -1,7 +1,7 @@
 import type {
   ExtensionAuthState,
   UserInfo,
-  SubscriptionInfo,
+  CreditsInfo,
   FeatureFlags,
   MeResponse,
 } from '@auction-comparator/shared'
@@ -36,7 +36,7 @@ const DEFAULT_SETTINGS: ExtensionSettings = {
 const DEFAULT_AUTH_STATE: ExtensionAuthState = {
   apiToken: null,
   user: null,
-  subscription: null,
+  credits: null,
   features: null,
   lastCheckedAt: null,
 }
@@ -171,7 +171,7 @@ export async function clearApiToken(): Promise<void> {
   await saveAuthState({
     apiToken: null,
     user: null,
-    subscription: null,
+    credits: null,
     features: null,
     lastCheckedAt: null,
   })
@@ -186,12 +186,12 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 /**
- * Check if user has active subscription
+ * Check if user has credits available
  */
-export async function hasActiveSubscription(): Promise<boolean> {
+export async function hasCreditsAvailable(): Promise<boolean> {
   const state = await getAuthState()
-  const status = state.subscription?.status
-  return status === 'active' || status === 'trialing'
+  if (!state.credits) return false
+  return state.credits.balance > 0 || state.credits.freeAvailable
 }
 
 /**
@@ -200,7 +200,7 @@ export async function hasActiveSubscription(): Promise<boolean> {
 export async function updateFromMeResponse(response: MeResponse): Promise<void> {
   await saveAuthState({
     user: response.user,
-    subscription: response.subscription,
+    credits: response.credits,
     features: response.features,
     lastCheckedAt: Date.now(),
   })

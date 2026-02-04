@@ -30,12 +30,12 @@ import {
   storeCacheEntry,
   recordSearchHistory,
 } from '../utils/compare-cache';
+import { incrementCacheHit } from '../utils/quota';
 import {
-  hasQuotaAvailable,
-  consumeQuota,
-  incrementCacheHit,
-  getUsageSummary,
-} from '../utils/quota';
+  hasCreditsAvailable,
+  consumeCredit,
+  getOrCreateUserCredits,
+} from '../utils/credits';
 import { deduplicateRequest } from '../utils/inflight';
 
 // Vehicle auction sites (fallback detection)
@@ -123,6 +123,7 @@ export default defineEventHandler(async (event) => {
     title: body.title?.slice(0, 50),
     brand: body.brand,
     model: body.model,
+    year: body.year,
     category,
     siteDomain: domain,
     extractionConfidence: body.extractionConfidence,
@@ -147,6 +148,7 @@ export default defineEventHandler(async (event) => {
       locale,
       brandHint: body.brand,
       modelHint: body.model,
+      yearHint: body.year,
       categoryHint: category,
       lotUrl,
       hints,
@@ -242,8 +244,8 @@ export default defineEventHandler(async (event) => {
   );
 
   if (cacheResult.entry) {
-    // Cache hit - don't consume quota
-    console.log('[Compare] Cache HIT (' + cacheResult.source + ')');
+    // Cache hit - don't consume credits (cache hits are FREE!)
+    console.log('[Compare] Cache HIT (' + cacheResult.source + ') - FREE');
 
     await incrementCacheHit(user.id);
 
@@ -262,7 +264,9 @@ export default defineEventHandler(async (event) => {
 
     // Recalculate verdict with current auction price
     const verdict = calculateVerdict(body.auctionPrice, cacheResult.entry.stats);
-    const usage = await getUsageSummary(user.id);
+
+    // Get current credits (for display, not consumption)
+    const currentCredits = await getOrCreateUserCredits(user.id);
 
     return {
       queryUsed: cacheResult.entry.queryUsed,
@@ -288,30 +292,36 @@ export default defineEventHandler(async (event) => {
         category: normalized.category,
         signatures,
       },
-      usage,
+      credits: {
+        balance: currentCredits.balance,
+        freeAvailable: currentCredits.freeCreditsGranted === 0,
+      },
     } satisfies CompareResponse;
   }
 
   // Cache miss - need fresh fetch
-  console.log('[Compare] Cache MISS - checking quota');
+  console.log('[Compare] Cache MISS - checking credits');
 
-  // Step 3: Check quota before fresh fetch (subscription or free tier)
-  const quotaCheck = await hasQuotaAvailable(user.id);
-  if (!quotaCheck.available) {
-    console.log('[Compare] Quota not available:', quotaCheck.errorCode);
+  // Step 3: Check credits before fresh fetch
+  const creditCheck = await hasCreditsAvailable(user.id);
+  if (!creditCheck.available) {
+    console.log('[Compare] No credits available');
 
-    const usage = await getUsageSummary(user.id);
+    const userCredits = await getOrCreateUserCredits(user.id);
 
     setResponseStatus(event, 402);
     return {
-      code: quotaCheck.errorCode || 'QUOTA_EXCEEDED',
-      message: quotaCheck.errorMessage || 'No quota available',
-      usage,
+      code: 'NO_CREDITS',
+      message: 'No credits remaining. Purchase credits to continue.',
+      credits: {
+        balance: userCredits.balance,
+        freeAvailable: userCredits.freeCreditsGranted === 0,
+      },
       cacheOnlyAvailable: false,
     } satisfies CompareError;
   }
 
-  console.log('[Compare] Quota available via:', quotaCheck.source);
+  console.log('[Compare] Credits available via:', creditCheck.source);
 
   // Step 4: Deduplicate in-flight requests and perform fresh fetch
   const query = normalized.query;
@@ -415,8 +425,9 @@ export default defineEventHandler(async (event) => {
         body.currency
       );
 
-      // Still consume quota for the API call
-      await consumeQuota(user.id, quotaCheck);
+      // Still consume credit for the API call (it was a real SerpApi request)
+      const noResultConsumeResult = await consumeCredit(user.id, 'no_results_' + crypto.randomUUID());
+      console.log('[Compare] Consumed credit for no-results fetch:', noResultConsumeResult);
 
       setResponseStatus(event, 404);
       return {
@@ -441,10 +452,10 @@ export default defineEventHandler(async (event) => {
     getDefaultCacheTtl()
   );
 
-  // Step 6: Consume quota and record history
-  const consumed = await consumeQuota(user.id, quotaCheck);
-  if (!consumed) {
-    console.error('[Compare] Failed to consume quota - race condition?');
+  // Step 6: Consume credit and record history
+  const consumeResult = await consumeCredit(user.id, cacheEntry.id);
+  if (!consumeResult.success) {
+    console.error('[Compare] Failed to consume credit - race condition?');
     // Continue anyway since we already made the API call
   }
 
@@ -460,9 +471,10 @@ export default defineEventHandler(async (event) => {
     body.currency
   );
 
-  const usage = await getUsageSummary(user.id);
+  // Get updated credits info
+  const updatedCredits = await getOrCreateUserCredits(user.id);
 
-  console.log('[Compare] Fresh fetch complete, quota:', usage.freshFetchCount + '/' + usage.quota);
+  console.log('[Compare] Fresh fetch complete, credits remaining:', updatedCredits.balance);
 
   return {
     queryUsed: query,
@@ -488,6 +500,9 @@ export default defineEventHandler(async (event) => {
       category: normalized.category,
       signatures,
     },
-    usage,
+    credits: {
+      balance: updatedCredits.balance,
+      freeAvailable: updatedCredits.freeCreditsGranted === 0,
+    },
   } satisfies CompareResponse;
 });

@@ -1,16 +1,16 @@
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { AuctionData, CompareResponse, SiteAdapter, UserInfo, UsageResponse } from '@auction-comparator/shared'
+import type { AuctionData, CompareResponse, SiteAdapter, UserInfo } from '@auction-comparator/shared'
 import { formatPrice } from '@auction-comparator/shared'
-import { requestComparison, requestComparisonWithRefresh, checkAuth, openLogin, logout, requestUsage } from '@/utils/messaging'
+import { requestComparison, requestComparisonWithRefresh, checkAuth, openLogin, logout } from '@/utils/messaging'
 import { listenForLocaleChanges } from '@/utils/i18n'
 import PricePanel from '@/components/overlay/PricePanel.vue'
 import VerdictBadge from '@/components/overlay/VerdictBadge.vue'
 import ConfidenceIndicator from '@/components/overlay/ConfidenceIndicator.vue'
 import WebResultsList from '@/components/overlay/WebResultsList.vue'
 import CacheStatus from '@/components/overlay/CacheStatus.vue'
-import QuotaWidget from '@/components/overlay/QuotaWidget.vue'
+import CreditsWidget from '@/components/overlay/CreditsWidget.vue'
 
 const { t } = useI18n()
 
@@ -74,25 +74,13 @@ const overlayStyle = computed(() => {
 
 // Auth state
 const authenticated = ref(false)
-const hasSubscription = ref(false)
 const user = ref<UserInfo | null>(null)
 const authLoading = ref(true)
 
-// Usage/quota state
-const usage = ref<UsageResponse | null>(null)
-const quotaExceeded = ref(false)
-const freeExhausted = ref(false)
-
-
-// Check if user can make comparisons (has subscription OR free tier remaining)
-const canCompare = computed(() => {
-  if (hasSubscription.value) return true
-  if (usage.value && usage.value.freeRemaining !== undefined) {
-    return usage.value.freeRemaining > 0
-  }
-  return true // Default to true, let backend handle
-})
-
+// Credits state
+const creditsBalance = ref(0)
+const freeCreditsAvailable = ref(true)
+const noCredits = ref(false)
 
 const formattedAuctionPrice = computed(() =>
   formatPrice(auctionData.value.totalPrice, auctionData.value.currency)
@@ -103,19 +91,21 @@ async function checkAuthStatus() {
   try {
     const result = await checkAuth()
     authenticated.value = result.authenticated
-    hasSubscription.value = result.hasSubscription
     user.value = result.user ?? null
+    // Update credits from auth check if available
+    if (result.credits) {
+      creditsBalance.value = result.credits.balance
+      freeCreditsAvailable.value = result.credits.freeAvailable
+    }
   } catch (err) {
     console.error('[Auction Comparator] Auth check error:', err)
     authenticated.value = false
-    hasSubscription.value = false
   } finally {
     authLoading.value = false
   }
 }
 
 async function fetchComparison(forceRefresh: boolean = false) {
-  // Only require authentication, not subscription (free tier allowed)
   if (!authenticated.value) {
     return
   }
@@ -123,8 +113,7 @@ async function fetchComparison(forceRefresh: boolean = false) {
   loading.value = true
   error.value = null
   errorCode.value = null
-  quotaExceeded.value = false
-  freeExhausted.value = false
+  noCredits.value = false
 
   try {
     comparison.value = forceRefresh
@@ -132,12 +121,10 @@ async function fetchComparison(forceRefresh: boolean = false) {
       : await requestComparison(auctionData.value)
     console.log('[Auction Comparator] Comparison fetched:', comparison.value)
 
-    // Update usage from response
-    if (comparison.value.usage) {
-      usage.value = {
-        ...comparison.value.usage,
-        daysRemaining: 0, // Will be updated by fetchUsage
-      }
+    // Update credits from response
+    if (comparison.value.credits) {
+      creditsBalance.value = comparison.value.credits.balance
+      freeCreditsAvailable.value = comparison.value.credits.freeAvailable
     }
   } catch (err: any) {
     error.value = err.message || 'Failed to fetch comparison'
@@ -146,17 +133,12 @@ async function fetchComparison(forceRefresh: boolean = false) {
     // Handle auth errors
     if (err.code === 'UNAUTHORIZED') {
       authenticated.value = false
-    } else if (err.code === 'SUBSCRIPTION_REQUIRED') {
-      hasSubscription.value = false
-    } else if (err.code === 'QUOTA_EXCEEDED') {
-      quotaExceeded.value = true
-      if (err.usage) {
-        usage.value = err.usage
-      }
-    } else if (err.code === 'FREE_EXHAUSTED') {
-      freeExhausted.value = true
-      if (err.usage) {
-        usage.value = err.usage
+    } else if (err.code === 'NO_CREDITS') {
+      // No credits available
+      noCredits.value = true
+      if (err.credits) {
+        creditsBalance.value = err.credits.balance
+        freeCreditsAvailable.value = err.credits.freeAvailable
       }
     }
 
@@ -166,22 +148,9 @@ async function fetchComparison(forceRefresh: boolean = false) {
   }
 }
 
-async function fetchUsage() {
-  // Fetch usage for all authenticated users (including free tier)
-  if (!authenticated.value) {
-    return
-  }
-
-  try {
-    usage.value = await requestUsage()
-  } catch (err) {
-    console.error('[Auction Comparator] Usage fetch error:', err)
-  }
-}
-
 function handleForceRefresh() {
-  if (quotaExceeded.value || freeExhausted.value) {
-    // Can't force refresh when quota is exceeded or free tier exhausted
+  if (noCredits.value) {
+    // Can't force refresh when no credits
     return
   }
   fetchComparison(true)
@@ -206,15 +175,14 @@ async function handleSignIn() {
   await openLogin()
 }
 
-
 async function handleLogout() {
   await logout()
   authenticated.value = false
-  hasSubscription.value = false
   user.value = null
   comparison.value = null
+  creditsBalance.value = 0
+  freeCreditsAvailable.value = true
 }
-
 
 // Handle auth changed message from background script
 function handleAuthChanged(message: any) {
@@ -223,7 +191,6 @@ function handleAuthChanged(message: any) {
     checkAuthStatus().then(() => {
       if (authenticated.value) {
         fetchComparison()
-        fetchUsage()
       }
     })
   }
@@ -233,7 +200,6 @@ onMounted(async () => {
   await checkAuthStatus()
   if (authenticated.value) {
     fetchComparison()
-    fetchUsage()
   }
 
   // Listen for data updates from the content script
@@ -325,26 +291,18 @@ onUnmounted(() => {
             </div>
 
             <!-- Error state -->
-            <div v-else-if="error" class="flex flex-col items-center gap-3 py-4">
+            <div v-else-if="error && !noCredits" class="flex flex-col items-center gap-3 py-4">
               <UIcon name="i-lucide-alert-circle" class="size-8 text-error" />
               <span class="text-sm text-error">{{ error }}</span>
               <UButton :label="t('retry')" size="sm" variant="soft" @click="retry" />
             </div>
 
-            <!-- Quota exceeded state -->
-            <div v-else-if="quotaExceeded" class="flex flex-col items-center gap-3 py-4">
-              <UIcon name="i-lucide-gauge" class="size-8 text-warning" />
-              <span class="text-sm text-warning font-medium">{{ t('quotaExceeded') }}</span>
-              <p class="text-xs text-muted text-center">{{ t('quotaExceededHint') }}</p>
-              <UButton :label="t('upgradePlan')" size="sm" @click="handleSignIn" />
-            </div>
-
-            <!-- Free tier exhausted state -->
-            <div v-else-if="freeExhausted" class="flex flex-col items-center gap-3 py-4">
-              <UIcon name="i-lucide-gift" class="size-8 text-warning" />
-              <span class="text-sm text-warning font-medium">{{ t('freeExhausted') }}</span>
-              <p class="text-xs text-muted text-center">{{ t('freeExhaustedHint', { total: usage?.freeTotal || 10 }) }}</p>
-              <UButton :label="t('upgradeNow')" size="sm" @click="handleSignIn" />
+            <!-- No credits state -->
+            <div v-else-if="noCredits" class="flex flex-col items-center gap-3 py-4">
+              <UIcon name="i-lucide-coins" class="size-8 text-warning" />
+              <span class="text-sm text-warning font-medium">{{ t('noCredits') }}</span>
+              <p class="text-xs text-muted text-center">{{ t('noCreditsHint') }}</p>
+              <UButton :label="t('buyCredits')" size="sm" @click="handleSignIn" />
             </div>
 
             <!-- Results -->
@@ -384,10 +342,12 @@ onUnmounted(() => {
             </div>
           </template>
 
-          <!-- Footer when authenticated (shows for both subscription and free tier) -->
+          <!-- Footer when authenticated (shows credits info) -->
           <template v-if="authenticated && !collapsed" #footer>
-            <!-- Quota widget -->
-            <QuotaWidget v-if="usage" :usage="usage" />
+            <CreditsWidget
+              :balance="creditsBalance"
+              :free-available="freeCreditsAvailable"
+            />
           </template>
         </UCard>
       </Transition>

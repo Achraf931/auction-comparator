@@ -3,7 +3,7 @@ import type {
   CompareResponse,
   CompareError,
   UserInfo,
-  SubscriptionInfo,
+  CreditsInfo,
   UsageResponse,
   HistoryResponse,
 } from '@auction-comparator/shared'
@@ -46,9 +46,9 @@ export interface AuthCheckMessage {
 export interface AuthCheckResponseMessage {
   type: 'AUTH_CHECK_RESPONSE';
   authenticated: boolean;
-  hasSubscription: boolean;
+  hasCredits: boolean;
   user?: UserInfo;
-  subscription?: SubscriptionInfo;
+  credits?: CreditsInfo;
 }
 
 export interface OpenLoginMessage {

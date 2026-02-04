@@ -1,8 +1,12 @@
-import type { UsageResponse, CompareError } from '@auction-comparator/shared';
+import type { CompareError } from '@auction-comparator/shared';
 import { requireAuth } from '../utils/auth';
-import { getUsageSummary, getDaysRemaining } from '../utils/quota';
+import { getCreditsSummary } from '../utils/credits';
 
-export default defineEventHandler(async (event): Promise<UsageResponse | CompareError> => {
+/**
+ * GET /api/usage - Returns credit usage summary
+ * Kept for backward compatibility, forwards to credits system
+ */
+export default defineEventHandler(async (event): Promise<any | CompareError> => {
   // Require authentication
   let user;
   try {
@@ -16,25 +20,19 @@ export default defineEventHandler(async (event): Promise<UsageResponse | Compare
   }
 
   try {
-    const usage = await getUsageSummary(user.id);
-    const daysRemaining = getDaysRemaining();
+    const credits = await getCreditsSummary(user.id);
 
+    // Return credit info in a format compatible with the old usage API
     return {
-      period: usage.period,
-      freshFetchCount: usage.freshFetchCount,
-      cacheHitCount: usage.cacheHitCount,
-      quota: usage.quota,
-      plan: usage.plan,
-      billingPeriod: usage.billingPeriod,
-      daysRemaining,
-      // Free tier info
-      freeRemaining: usage.freeRemaining,
-      freeUsed: usage.freeUsed,
-      freeTotal: usage.freeTotal,
-      hasSubscription: usage.hasSubscription,
+      credits: {
+        balance: credits.balance,
+        freeAvailable: credits.freeAvailable,
+        totalPurchased: credits.totalPurchased,
+        totalConsumed: credits.totalConsumed,
+      },
     };
   } catch (error) {
-    console.error('[Usage] Error fetching usage:', error);
+    console.error('[Usage] Error fetching credits:', error);
     setResponseStatus(event, 500);
     return {
       code: 'API_ERROR',

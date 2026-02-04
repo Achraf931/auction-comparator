@@ -3,12 +3,13 @@ definePageMeta({
   middleware: ['auth'],
 });
 
-const { state, hasActiveSubscription, fetchUser, createCheckoutSession, createPortalSession, logout, connectExtension } = useAuth();
+const { state, fetchUser, createPortalSession, logout, connectExtension } = useAuth();
 const { t } = useI18n();
 const route = useRoute();
 
 // Handle checkout redirect
 const checkoutStatus = computed(() => route.query.checkout as string | undefined);
+const creditsStatus = computed(() => route.query.credits as string | undefined);
 
 // Extension ID from URL (when redirected from extension login)
 const extensionId = computed(() => route.query.ext as string | undefined);
@@ -16,52 +17,75 @@ const extensionId = computed(() => route.query.ext as string | undefined);
 // Tabs
 const tabs = computed(() => [
   { label: t('profile'), value: 'profile', icon: 'i-lucide-user' },
-  { label: t('subscription'), value: 'subscription', icon: 'i-lucide-credit-card' },
+  { label: t('credits'), value: 'credits', icon: 'i-lucide-coins' },
   { label: t('history'), value: 'history', icon: 'i-lucide-history' },
 ]);
-// Default to subscription tab if specified in query
-const initialTab = route.query.tab === 'subscription' ? 'subscription' : 'profile';
+// Default to credits tab if specified in query
+const initialTab = route.query.tab === 'credits' ? 'credits' : 'profile';
 const activeTab = ref(initialTab);
 
 const billingLoading = ref<string | null>(null);
 
-// Billing period toggle
-const billingPeriod = ref<'monthly' | 'yearly'>('monthly');
-
-// Fetch pricing data
-interface PlanPricing {
-  planKey: 'starter' | 'pro' | 'business';
-  name: string;
-  description: string;
-  monthlyQuota: number;
-  features: string[];
-  monthly: { priceId: string; price: number; currency: string };
-  yearly: { priceId: string; price: number; currency: string; monthlyEquivalent: number; savings: number };
+// Credits data
+interface CreditsData {
+  balance: number;
+  freeAvailable: boolean;
+  freeCreditsAmount: number;
+  totalPurchased: number;
+  totalConsumed: number;
 }
 
-const plans = ref<PlanPricing[]>([]);
-const pricesLoading = ref(true);
+interface CreditPack {
+  id: string;
+  credits: number;
+  displayName: string;
+  shortDescription: string;
+  priceEur: number;
+  priceCents: number;
+  pricePerCredit: number;
+  badge: 'none' | 'most_popular' | 'best_value';
+  stripePriceId: string | null;
+}
 
-async function fetchPrices() {
+const credits = ref<CreditsData | null>(null);
+const creditPacks = ref<CreditPack[]>([]);
+const creditsLoading = ref(true);
+
+async function fetchCredits() {
   try {
-    const response = await $fetch<{ plans: PlanPricing[] }>('/api/billing/prices');
-    plans.value = response.plans;
+    const [creditsResponse, packsResponse] = await Promise.all([
+      $fetch<CreditsData>('/api/me/credits'),
+      $fetch<{ packs: CreditPack[] }>('/api/billing/credit-packs'),
+    ]);
+    credits.value = creditsResponse;
+    creditPacks.value = packsResponse.packs;
   } catch (error) {
-    console.error('Failed to fetch prices:', error);
+    console.error('Failed to fetch credits:', error);
   } finally {
-    pricesLoading.value = false;
+    creditsLoading.value = false;
+  }
+}
+
+async function buyPack(packId: string) {
+  billingLoading.value = packId;
+  try {
+    const response = await $fetch<{ url: string }>('/api/billing/checkout/credits', {
+      method: 'POST',
+      body: { packId },
+    });
+    if (response.url) {
+      window.location.href = response.url;
+    }
+  } catch (error) {
+    console.error('Failed to create checkout:', error);
+  } finally {
+    billingLoading.value = null;
   }
 }
 
 // Extension connection
 const extensionConnected = ref(false);
 const extensionConnecting = ref(false);
-
-async function handleSubscribe(priceId: string) {
-  billingLoading.value = priceId;
-  await createCheckoutSession(priceId);
-  billingLoading.value = null;
-}
 
 async function handleManageBilling() {
   billingLoading.value = 'portal';
@@ -86,7 +110,7 @@ function getPlanDisplayName(planKey: string | null | undefined): string {
 
 // Refresh user data on mount
 onMounted(async () => {
-  await Promise.all([fetchUser(), fetchPrices()]);
+  await Promise.all([fetchUser(), fetchCredits()]);
 
   // Auto-connect extension if we have an ID
   if (extensionId.value && state.value.user) {
@@ -113,7 +137,7 @@ onMounted(async () => {
       </UButton>
     </div>
 
-    <!-- Checkout Status Alerts -->
+    <!-- Checkout/Credits Status Alerts -->
     <UAlert
       v-if="checkoutStatus === 'success'"
       color="success"
@@ -131,6 +155,26 @@ onMounted(async () => {
       icon="i-lucide-x-circle"
       :title="t('checkoutCancelled')"
       :description="t('checkoutCancelledDesc')"
+      closable
+    />
+
+    <UAlert
+      v-if="creditsStatus === 'success'"
+      color="success"
+      variant="soft"
+      icon="i-lucide-coins"
+      :title="t('creditsSuccess')"
+      :description="t('creditsSuccessDesc')"
+      closable
+    />
+
+    <UAlert
+      v-if="creditsStatus === 'cancel'"
+      color="warning"
+      variant="soft"
+      icon="i-lucide-x-circle"
+      :title="t('creditsCancelled')"
+      :description="t('creditsCancelledDesc')"
       closable
     />
 
@@ -158,18 +202,18 @@ onMounted(async () => {
       </div>
     </UCard>
 
-    <!-- Extension Connection Failed -->
+    <!-- Extension Connection - Needs Credits -->
     <UCard v-else-if="extensionId && !extensionConnected && !extensionConnecting">
       <div class="text-center py-4">
         <div class="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <UIcon name="i-lucide-alert-circle" class="w-8 h-8 text-amber-500" />
+          <UIcon name="i-lucide-coins" class="w-8 h-8 text-amber-500" />
         </div>
-        <h2 class="text-xl font-bold text-amber-700 dark:text-amber-400 mb-2">{{ t('subscriptionRequired') }}</h2>
+        <h2 class="text-xl font-bold text-amber-700 dark:text-amber-400 mb-2">{{ t('extensionConnected') }}</h2>
         <p class="text-zinc-600 dark:text-zinc-400 mb-4">
-          {{ t('subscribeToStart') }}
+          {{ t('freeCreditsIncluded') }}
         </p>
         <UButton @click="connectExtension(extensionId!).then(s => extensionConnected = s)">
-          {{ t('subscribeNow') }}
+          {{ t('getStarted') }}
         </UButton>
       </div>
     </UCard>
@@ -177,27 +221,22 @@ onMounted(async () => {
     <!-- Extension Status Card -->
     <UCard v-else>
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-full flex items-center justify-center" :class="hasActiveSubscription ? 'bg-green-100 dark:bg-green-900/30' : 'bg-amber-100 dark:bg-amber-900/30'">
+        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100 dark:bg-green-900/30">
           <UIcon
-            :name="hasActiveSubscription ? 'i-lucide-check-circle' : 'i-lucide-alert-circle'"
-            class="w-6 h-6"
-            :class="hasActiveSubscription ? 'text-green-500' : 'text-amber-500'"
+            name="i-lucide-check-circle"
+            class="w-6 h-6 text-green-500"
           />
         </div>
         <div class="flex-1">
-          <h3 class="font-semibold">
-            {{ hasActiveSubscription ? t('extensionReady') : t('subscriptionRequired') }}
-          </h3>
+          <h3 class="font-semibold">{{ t('extensionReady') }}</h3>
           <p class="text-sm text-zinc-500">
-            {{ hasActiveSubscription ? t('extensionConnectedReady') : t('subscribeToStart') }}
+            {{ t('extensionConnectedReady') }}
           </p>
         </div>
-        <UButton
-          v-if="!hasActiveSubscription"
-          @click="activeTab = 'subscription'"
-        >
-          {{ t('viewPlans') }}
-        </UButton>
+        <div class="text-right">
+          <div class="text-2xl font-bold text-primary-500">{{ credits?.balance || 0 }}</div>
+          <div class="text-xs text-zinc-500">{{ t('credits') }}</div>
+        </div>
       </div>
     </UCard>
 
@@ -229,153 +268,109 @@ onMounted(async () => {
       </div>
     </UCard>
 
-    <!-- Subscription Tab -->
-    <template v-if="activeTab === 'subscription'">
-      <!-- Pricing Cards (No subscription) -->
-      <div v-if="!hasActiveSubscription" class="space-y-6">
-        <!-- Billing Period Toggle -->
-        <div class="flex justify-center">
-          <div class="inline-flex items-center gap-3 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-            <button
-              class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              :class="billingPeriod === 'monthly' ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-zinc-600 dark:text-zinc-400'"
-              @click="billingPeriod = 'monthly'"
-            >
-              {{ t('monthly') }}
-            </button>
-            <button
-              class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-              :class="billingPeriod === 'yearly' ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-zinc-600 dark:text-zinc-400'"
-              @click="billingPeriod = 'yearly'"
-            >
-              {{ t('yearly') }}
-              <UBadge color="success" size="xs">{{ t('saveUpTo', { percent: 30 }) }}</UBadge>
-            </button>
-          </div>
-        </div>
-
-        <!-- Loading -->
-        <div v-if="pricesLoading" class="flex justify-center py-8">
-          <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500" />
-        </div>
-
-        <!-- Plans Grid -->
-        <div v-else class="grid gap-4 md:grid-cols-3">
-          <UCard
-            v-for="plan in plans"
-            :key="plan.planKey"
-            :class="plan.planKey === 'pro' ? 'ring-2 ring-primary-500' : ''"
-          >
-            <template #header>
-              <div class="text-center">
-                <UBadge v-if="plan.planKey === 'pro'" color="primary" class="mb-2">{{ t('mostPopular') }}</UBadge>
-                <h3 class="text-xl font-bold">{{ plan.name }}</h3>
-                <p class="text-sm text-zinc-500">{{ plan.description }}</p>
-              </div>
-            </template>
-
-            <div class="text-center py-4">
-              <template v-if="billingPeriod === 'monthly'">
-                <div class="text-3xl font-bold">
-                  {{ formatPrice(plan.monthly.price, plan.monthly.currency) }}
-                  <span class="text-base font-normal text-zinc-500">/{{ t('monthly').toLowerCase() }}</span>
-                </div>
-              </template>
-              <template v-else>
-                <div class="text-3xl font-bold">
-                  {{ formatPrice(plan.yearly.price, plan.yearly.currency) }}
-                  <span class="text-base font-normal text-zinc-500">/{{ t('yearly').toLowerCase() }}</span>
-                </div>
-                <div class="text-sm text-zinc-500 mt-1">
-                  {{ formatPrice(plan.yearly.monthlyEquivalent, plan.yearly.currency) }}/{{ t('monthly').toLowerCase() }}
-                  <span class="text-green-600 font-medium ml-1">{{ t('saveUpTo', { percent: plan.yearly.savings }) }}</span>
-                </div>
-              </template>
-            </div>
-
-            <div class="text-center mb-4">
-              <UBadge color="neutral" variant="soft">
-                {{ t('freshChecksMonth', { count: plan.monthlyQuota }) }}
-              </UBadge>
-            </div>
-
-            <ul class="space-y-2 mb-6 text-sm">
-              <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-2">
-                <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>{{ feature }}</span>
-              </li>
-            </ul>
-
-            <UButton
-              block
-              :color="plan.planKey === 'pro' ? 'primary' : 'neutral'"
-              :variant="plan.planKey === 'pro' ? 'solid' : 'soft'"
-              :loading="billingLoading === (billingPeriod === 'monthly' ? plan.monthly.priceId : plan.yearly.priceId)"
-              @click="handleSubscribe(billingPeriod === 'monthly' ? plan.monthly.priceId : plan.yearly.priceId)"
-            >
-              {{ t('subscribeNow') }}
-            </UButton>
-          </UCard>
-        </div>
-
-        <p class="text-center text-sm text-gray-500">
-          {{ t('cancelAnytime') }}
-        </p>
-      </div>
-
-      <!-- Active Subscription -->
-      <UCard v-else>
+    <!-- Credits Tab -->
+    <template v-if="activeTab === 'credits'">
+      <!-- Current Balance -->
+      <UCard>
         <template #header>
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-credit-card" class="w-5 h-5 text-primary-500" />
-            <span class="font-semibold">{{ t('yourSubscription') }}</span>
+            <UIcon name="i-lucide-coins" class="w-5 h-5 text-primary-500" />
+            <span class="font-semibold">{{ t('yourCredits') }}</span>
           </div>
         </template>
 
-        <div class="space-y-4">
-          <div class="flex items-center justify-between p-4 rounded-lg border border-default">
-            <div>
-              <div class="font-semibold">
-                {{ getPlanDisplayName(state.subscription?.planKey) }} Plan
-              </div>
-              <div class="text-sm">
-                {{ state.subscription?.billingPeriod === 'yearly' ? t('annualBilling') : t('monthlyBilling') }}
-              </div>
-            </div>
-            <UBadge color="success" variant="subtle">{{ state.subscription?.status }}</UBadge>
+        <div class="text-center py-6">
+          <div class="text-5xl font-bold text-primary-500 mb-2">
+            {{ credits?.balance || 0 }}
           </div>
+          <div class="text-zinc-500">{{ t('creditsBalance') }}</div>
+          <div v-if="credits?.freeAvailable" class="mt-2 text-sm text-green-600">
+            + 1 {{ t('freeCredit') }}
+          </div>
+        </div>
 
-          <div class="space-y-2">
-            <div v-if="state.subscription?.currentPeriodEnd" class="flex justify-between text-sm">
-              <span class="text-gray-500">
-                {{ state.subscription.cancelAtPeriodEnd ? t('endsOn') : t('renewsOn') }}
-              </span>
-              <span class="font-medium">{{ formatDate(state.subscription.currentPeriodEnd) }}</span>
+        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-default">
+          <div class="text-center">
+            <div class="text-2xl font-bold text-zinc-700 dark:text-zinc-300">{{ credits?.totalPurchased || 0 }}</div>
+            <div class="text-xs text-zinc-500">{{ t('totalPurchased') }}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-zinc-700 dark:text-zinc-300">{{ credits?.totalConsumed || 0 }}</div>
+            <div class="text-xs text-zinc-500">{{ t('totalConsumed') }}</div>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Buy Credits -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-shopping-cart" class="w-5 h-5 text-primary-500" />
+            <span class="font-semibold">{{ t('buyCredits') }}</span>
+          </div>
+        </template>
+
+        <!-- Loading -->
+        <div v-if="creditsLoading" class="flex justify-center py-8">
+          <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500" />
+        </div>
+
+        <!-- Credit Packs -->
+        <div v-else class="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          <div
+            v-for="pack in creditPacks"
+            :key="pack.id"
+            class="relative p-3 rounded-lg border-2 transition-colors"
+            :class="[
+              pack.badge === 'most_popular' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : '',
+              pack.badge === 'best_value' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : '',
+              pack.badge === 'none' ? 'border-zinc-200 dark:border-zinc-700' : ''
+            ]"
+          >
+            <UBadge
+              v-if="pack.badge === 'most_popular'"
+              color="primary"
+              size="xs"
+              class="absolute -top-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
+            >
+              {{ t('mostPopular') }}
+            </UBadge>
+            <UBadge
+              v-if="pack.badge === 'best_value'"
+              color="success"
+              size="xs"
+              class="absolute -top-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
+            >
+              {{ t('bestValueBadge') }}
+            </UBadge>
+            <div class="text-center" :class="pack.badge !== 'none' ? 'pt-2' : ''">
+              <div class="text-xl font-bold">{{ pack.credits }}</div>
+              <div class="text-xs text-zinc-500 mb-1">{{ pack.credits === 1 ? t('comparison') : t('comparisons') }}</div>
+              <div class="text-sm text-zinc-400 mb-2">{{ pack.shortDescription }}</div>
+              <div class="text-lg font-bold" :class="pack.badge === 'best_value' ? 'text-emerald-500' : 'text-primary-500'">
+                {{ pack.priceEur.toFixed(2) }} EUR
+              </div>
+              <div class="text-xs text-zinc-400 mb-3">{{ pack.pricePerCredit.toFixed(2) }} EUR/{{ t('comparison') }}</div>
+              <UButton
+                block
+                size="xs"
+                :color="pack.badge === 'best_value' ? 'success' : pack.badge === 'most_popular' ? 'primary' : 'neutral'"
+                :variant="pack.badge !== 'none' ? 'solid' : 'soft'"
+                :loading="billingLoading === pack.id"
+                @click="buyPack(pack.id)"
+              >
+                {{ t('buy') }}
+              </UButton>
             </div>
           </div>
+        </div>
 
-          <UAlert
-            v-if="state.subscription?.cancelAtPeriodEnd"
-            color="warning"
-            variant="soft"
-            icon="i-lucide-alert-triangle"
-          >
-            <template #title>{{ t('subscriptionEnding') }}</template>
-            <template #description>
-              {{ t('subscriptionWontRenew') }}
-            </template>
-          </UAlert>
-
-          <UButton
-            color="neutral"
-            :loading="billingLoading === 'portal'"
-            @click="handleManageBilling"
-          >
-            {{ t('manageSubscription') }}
-          </UButton>
-
-          <p class="text-sm text-gray-500">
-            {{ t('updatePaymentMethod') }}
+        <div class="text-center mt-4 space-y-1">
+          <p class="text-xs text-zinc-500">
+            {{ t('oneComparisonExplainer') }}
+          </p>
+          <p class="text-xs text-zinc-500">
+            {{ t('cacheHitsFree') }}
           </p>
         </div>
       </UCard>

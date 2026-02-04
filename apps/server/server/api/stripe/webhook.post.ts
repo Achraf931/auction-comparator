@@ -3,16 +3,17 @@ import {
   verifyWebhookSignature,
   isEventProcessed,
   markEventProcessed,
-  handleCheckoutCompleted,
-  handleSubscriptionUpdated,
-  handleSubscriptionDeleted,
-  handlePaymentFailed,
+  handleCreditPackCheckoutCompleted,
+  handleChargeRefunded,
 } from '../../utils/stripe';
 
 export default defineEventHandler(async (event) => {
+  console.log('[Stripe Webhook] Received request');
+
   // Get raw body for signature verification
   const rawBody = await readRawBody(event);
   if (!rawBody) {
+    console.error('[Stripe Webhook] No body received');
     setResponseStatus(event, 400);
     return { error: 'No body' };
   }
@@ -20,13 +21,18 @@ export default defineEventHandler(async (event) => {
   // Get Stripe signature header
   const signature = getHeader(event, 'stripe-signature');
   if (!signature) {
+    console.error('[Stripe Webhook] No stripe-signature header');
     setResponseStatus(event, 400);
     return { error: 'No signature' };
   }
 
+  console.log('[Stripe Webhook] Verifying signature...');
+  console.log('[Stripe Webhook] STRIPE_WEBHOOK_SECRET configured:', !!process.env.STRIPE_WEBHOOK_SECRET);
+
   let stripeEvent: Stripe.Event;
   try {
     stripeEvent = verifyWebhookSignature(rawBody, signature);
+    console.log('[Stripe Webhook] Signature verified successfully');
   } catch (error: any) {
     console.error('[Stripe Webhook] Signature verification failed:', error.message);
     setResponseStatus(event, 400);
@@ -45,26 +51,20 @@ export default defineEventHandler(async (event) => {
     switch (stripeEvent.type) {
       case 'checkout.session.completed': {
         const session = stripeEvent.data.object as Stripe.Checkout.Session;
-        await handleCheckoutCompleted(session);
+
+        // Only handle one-time payments (credit packs)
+        if (session.mode === 'payment') {
+          await handleCreditPackCheckoutCompleted(session);
+        } else {
+          // Subscription mode is deprecated - log and ignore
+          console.log(`[Stripe Webhook] Ignoring checkout.session.completed with mode=${session.mode} (subscriptions deprecated)`);
+        }
         break;
       }
 
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = stripeEvent.data.object as Stripe.Subscription;
-        await handleSubscriptionUpdated(subscription);
-        break;
-      }
-
-      case 'customer.subscription.deleted': {
-        const subscription = stripeEvent.data.object as Stripe.Subscription;
-        await handleSubscriptionDeleted(subscription);
-        break;
-      }
-
-      case 'invoice.payment_failed': {
-        const invoice = stripeEvent.data.object as Stripe.Invoice;
-        await handlePaymentFailed(invoice);
+      case 'charge.refunded': {
+        const charge = stripeEvent.data.object as Stripe.Charge;
+        await handleChargeRefunded(charge);
         break;
       }
 

@@ -187,10 +187,14 @@ export class AgorastoreAdapter extends BaseAdapter {
     // Calculate total price with fees
     const totalPrice = calculateTotalPrice(currentBid, this.defaultFees)
 
+    // Extract year from specs
+    const year = specsUsed?.year
+
     const data: AuctionData = {
       title,
       brand,
       model,
+      year,
       category,
       condition,
       currentBid,

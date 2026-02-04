@@ -11,11 +11,6 @@ const messages = {
     signIn: 'Sign In',
     signOut: 'Sign out',
 
-    // Subscription
-    subscriptionRequired: 'Subscription Required',
-    subscribeToUnlock: 'Subscribe to unlock price comparisons',
-    subscribeNow: 'Subscribe Now',
-
     // Loading & Errors
     searchingPrices: 'Searching web prices...',
     retry: 'Retry',
@@ -66,20 +61,33 @@ const messages = {
     fetchedJustNow: 'Just fetched',
     forceRefreshHint: 'Force refresh (uses quota)',
 
-    // Quota
+    // Credits / Comparisons
+    credits: 'Comparisons',
+    comparison: 'comparison',
+    comparisons: 'comparisons',
+    freeCredit: 'free',
+    noCredits: 'No Comparisons',
+    noCreditsHint: 'Purchase comparisons to continue comparing prices.',
+    noCreditsRemaining: 'No comparisons remaining',
+    buyCredits: 'Buy Comparisons',
+    buyComparisons: 'Buy Comparisons',
+    creditConsumed: '1 comparison used',
+    cacheHitFree: 'Cache hit (free)',
+
+    // Legacy quota (for backwards compatibility)
     freshFetches: 'Fresh fetches',
     daysRemaining: '{days} days left',
     quotaExceeded: 'Quota Exceeded',
     quotaExceededHint: 'You have used all your fresh fetches for this month. Upgrade your plan for more.',
     upgradePlan: 'Upgrade Plan',
 
-    // Free tier
+    // Free tier (updated for credits)
     freeTrial: 'Free Trial',
     freeSearchesRemaining: '{count} free searches left',
-    freeExhausted: 'Free trial ended',
-    freeExhaustedHint: 'Your {total} free searches have been used. Subscribe to continue.',
+    freeExhausted: 'Free credit used',
+    freeExhaustedHint: 'Your free credit has been used. Purchase credits to continue.',
     cachedResultFree: 'Cached result (free)',
-    upgradeNow: 'Subscribe Now',
+    upgradeNow: 'Buy Credits',
 
     // Popup Settings
     extensionEnabled: 'Extension enabled',
@@ -118,11 +126,6 @@ const messages = {
     signInToCompare: 'Connectez-vous pour comparer les prix',
     signIn: 'Se connecter',
     signOut: 'Déconnexion',
-
-    // Subscription
-    subscriptionRequired: 'Abonnement Requis',
-    subscribeToUnlock: 'Abonnez-vous pour débloquer les comparaisons de prix',
-    subscribeNow: "S'abonner",
 
     // Loading & Errors
     searchingPrices: 'Recherche des prix web...',
@@ -174,20 +177,33 @@ const messages = {
     fetchedJustNow: 'Vient d\'être récupéré',
     forceRefreshHint: 'Forcer le rafraîchissement (utilise le quota)',
 
-    // Quota
+    // Credits / Comparisons
+    credits: 'Comparaisons',
+    comparison: 'comparaison',
+    comparisons: 'comparaisons',
+    freeCredit: 'gratuite',
+    noCredits: 'Plus de comparaisons',
+    noCreditsHint: 'Achetez des comparaisons pour continuer à comparer les prix.',
+    noCreditsRemaining: 'Plus de comparaisons disponibles',
+    buyCredits: 'Acheter des comparaisons',
+    buyComparisons: 'Acheter des comparaisons',
+    creditConsumed: '1 comparaison utilisée',
+    cacheHitFree: 'Cache (gratuit)',
+
+    // Legacy quota (for backwards compatibility)
     freshFetches: 'Recherches fraîches',
     daysRemaining: '{days} jours restants',
     quotaExceeded: 'Quota Dépassé',
     quotaExceededHint: 'Vous avez utilisé toutes vos recherches fraîches ce mois-ci. Passez à un plan supérieur.',
     upgradePlan: 'Changer de Plan',
 
-    // Free tier
+    // Free tier (updated for credits)
     freeTrial: 'Essai gratuit',
     freeSearchesRemaining: '{count} recherches gratuites restantes',
-    freeExhausted: 'Essai gratuit terminé',
-    freeExhaustedHint: 'Vos {total} recherches gratuites ont été utilisées. Abonnez-vous pour continuer.',
+    freeExhausted: 'Crédit gratuit utilisé',
+    freeExhaustedHint: 'Votre crédit gratuit a été utilisé. Achetez des crédits pour continuer.',
     cachedResultFree: 'Résultat en cache (gratuit)',
-    upgradeNow: "S'abonner maintenant",
+    upgradeNow: 'Acheter des crédits',
 
     // Popup Settings
     extensionEnabled: 'Extension activée',

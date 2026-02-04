@@ -18,8 +18,13 @@ export default defineNuxtConfig({
     serpApiKey: process.env.SERPAPI_KEY || '',
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
-    // Note: Stripe price IDs are read directly from process.env by price-mapping.ts
-    // STRIPE_PRICE_STARTER_MONTHLY, STRIPE_PRICE_STARTER_YEARLY, etc.
+    // Credit pack Stripe price IDs (one-time payments, EUR)
+    // Premium pricing: pack_1=1.49, pack_5=4.99, pack_10=8.99, pack_30=19.99, pack_100=49.99
+    stripePricePack1: process.env.STRIPE_PRICE_PACK_1 || '',
+    stripePricePack5: process.env.STRIPE_PRICE_PACK_5 || '',
+    stripePricePack10: process.env.STRIPE_PRICE_PACK_10 || '',
+    stripePricePack30: process.env.STRIPE_PRICE_PACK_30 || '',
+    stripePricePack100: process.env.STRIPE_PRICE_PACK_100 || '',
     appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3001',
     // AI Normalization settings
     normalizerProvider: process.env.NORMALIZER_PROVIDER || '', // 'anthropic', 'openai', or 'ollama'

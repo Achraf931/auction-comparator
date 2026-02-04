@@ -27,6 +27,8 @@ export interface AuctionData {
   brand?: string;
   /** Model name/number if detectable */
   model?: string;
+  /** Year (e.g., car model year, first circulation date) */
+  year?: number;
   /** Item condition */
   condition: ItemCondition;
   /** Current bid price (or starting price if no bids) */

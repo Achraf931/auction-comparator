@@ -51,6 +51,8 @@ export interface NormalizeRequest {
   brandHint?: string;
   /** Model hint from deterministic extraction */
   modelHint?: string;
+  /** Year hint (e.g., car model year, first circulation date) */
+  yearHint?: number;
   /** Category hint (vehicle, product) */
   categoryHint?: string;
   /** Lot URL for context */
@@ -111,6 +113,8 @@ export interface NormalizedResult {
   model: string | null;
   /** Product reference/SKU if found */
   reference: string | null;
+  /** Year (e.g., car model year) */
+  year: number | null;
   /** Capacity/size if applicable (e.g., "256GB", "1TB") */
   capacity: string | null;
   /** Capacity in GB (normalized integer) */
