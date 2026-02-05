@@ -20,7 +20,7 @@ export default defineConfig({
   manifest: {
     name: 'Auction Price Comparator',
     description: 'Compare auction bid prices with web market prices',
-    version: '0.0.1',
+    version: '0.1.0',
     permissions: ['storage', 'activeTab', 'alarms', 'scripting'],
     // Use optional_host_permissions for privacy-friendly permission requests
     optional_host_permissions: OPTIONAL_HOST_PERMISSIONS,
