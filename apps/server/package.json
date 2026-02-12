@@ -14,12 +14,13 @@
   },
   "dependencies": {
     "@auction-comparator/shared": "workspace:*",
+    "@nuxt/ui": "^4.4.0",
+    "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",
     "drizzle-orm": "^0.45.1",
     "lru-cache": "^11.2.5",
-    "stripe": "^20.2.0",
-    "bcrypt": "^6.0.0",
-    "@nuxt/ui": "^4.4.0"
+    "resend": "^6.9.1",
+    "stripe": "^20.2.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

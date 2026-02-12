@@ -285,6 +285,7 @@ export function toUserInfo(user: User): UserInfo {
     id: user.id,
     email: user.email,
     createdAt: user.createdAt.toISOString(),
+    emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
   };
 }
 

@@ -8,6 +8,20 @@ export default defineEventHandler(async (event) => {
   // Require authentication
   const user = await requireAuth(event);
 
+  // Require email verification before purchasing credits
+  if (!user.emailVerifiedAt) {
+    throw createError({
+      statusCode: 403,
+      data: {
+        success: false,
+        error: {
+          code: 'EMAIL_NOT_VERIFIED',
+          message: 'Veuillez confirmer votre adresse e-mail avant d\'acheter des crédits.',
+        },
+      },
+    });
+  }
+
   // Parse request body
   const body = await readBody<{ packId: string }>(event);
   console.log('[Credits Checkout] Request body:', body);

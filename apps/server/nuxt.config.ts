@@ -26,6 +26,10 @@ export default defineNuxtConfig({
     stripePricePack30: process.env.STRIPE_PRICE_PACK_30 || '',
     stripePricePack100: process.env.STRIPE_PRICE_PACK_100 || '',
     appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3001',
+    // Email / Resend
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    emailFrom: process.env.EMAIL_FROM || 'AuctiMatch <no-reply@auctimatch.com>',
+    contactEmail: process.env.CONTACT_EMAIL || 'contact@auctimatch.com',
     // AI Normalization settings
     normalizerProvider: process.env.NORMALIZER_PROVIDER || '', // 'anthropic', 'openai', or 'ollama'
     anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -59,5 +63,6 @@ export default defineNuxtConfig({
     '/register': { ssr: false },
     '/account': { ssr: false },
     '/billing': { ssr: false },
+    '/verify-email/**': { ssr: false },
   },
 });

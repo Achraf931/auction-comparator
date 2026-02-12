@@ -66,6 +66,10 @@ async function fetchCredits() {
   }
 }
 
+const showVerificationModal = ref(false);
+const resendLoading = ref(false);
+const resendSuccess = ref(false);
+
 async function buyPack(packId: string) {
   billingLoading.value = packId;
   try {
@@ -76,12 +80,34 @@ async function buyPack(packId: string) {
     if (response.url) {
       window.location.href = response.url;
     }
-  } catch (error) {
-    console.error('Failed to create checkout:', error);
+  } catch (error: any) {
+    if (error.data?.error?.code === 'EMAIL_NOT_VERIFIED') {
+      showVerificationModal.value = true;
+    } else {
+      console.error('Failed to create checkout:', error);
+    }
   } finally {
     billingLoading.value = null;
   }
 }
+
+async function handleResendVerification() {
+  resendLoading.value = true;
+  resendSuccess.value = false;
+  try {
+    await $fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    resendSuccess.value = true;
+  } catch (error) {
+    console.error('Failed to resend verification:', error);
+  } finally {
+    resendLoading.value = false;
+  }
+}
+
+const isEmailVerified = computed(() => !!state.value.user?.emailVerifiedAt);
 
 // Extension connection
 const extensionConnected = ref(false);
@@ -177,6 +203,66 @@ onMounted(async () => {
       :description="t('creditsCancelledDesc')"
       closable
     />
+
+    <!-- Email Verification Banner -->
+    <UAlert
+      v-if="state.user && !isEmailVerified"
+      color="warning"
+      variant="soft"
+      icon="i-lucide-mail"
+      :title="t('emailNotVerified')"
+      :description="t('verifyEmailBanner')"
+    >
+      <template #actions>
+        <UButton
+          variant="soft"
+          color="warning"
+          size="xs"
+          :loading="resendLoading"
+          @click="handleResendVerification"
+        >
+          {{ t('resendVerificationEmail') }}
+        </UButton>
+      </template>
+    </UAlert>
+
+    <UAlert
+      v-if="resendSuccess"
+      color="success"
+      variant="soft"
+      icon="i-lucide-check"
+      :title="t('verificationEmailSent')"
+      closable
+      @close="resendSuccess = false"
+    />
+
+    <!-- Email Verification Modal -->
+    <UModal v-model:open="showVerificationModal">
+      <template #content>
+        <div class="p-6 text-center">
+          <div class="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <UIcon name="i-lucide-mail-warning" class="w-8 h-8 text-amber-500" />
+          </div>
+          <h3 class="text-lg font-bold text-zinc-900 dark:text-white mb-2">{{ t('emailNotVerified') }}</h3>
+          <p class="text-zinc-600 dark:text-zinc-400 mb-6">{{ t('emailNotVerifiedDesc') }}</p>
+          <div class="flex flex-col gap-3">
+            <UButton
+              :loading="resendLoading"
+              @click="handleResendVerification"
+            >
+              {{ t('resendVerificationEmail') }}
+            </UButton>
+            <UButton
+              variant="ghost"
+              color="neutral"
+              @click="showVerificationModal = false"
+            >
+              {{ t('cancel') }}
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
 
     <!-- Extension Connecting -->
     <UCard v-if="extensionConnecting">

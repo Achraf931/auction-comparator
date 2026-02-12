@@ -67,7 +67,8 @@ const config = useRuntimeConfig();
 
     <h2>Contact Us</h2>
     <p>
-      If you have questions about these Terms, please contact us at charfehamrouni@gmail.com.
+      If you have questions about these Terms, please contact us at
+      <a href="mailto:contact@auctimatch.com">contact@auctimatch.com</a>.
     </p>
   </div>
 </template>

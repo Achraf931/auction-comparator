@@ -165,11 +165,23 @@ export function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_purchases_user ON purchases(user_id);
     CREATE INDEX IF NOT EXISTS idx_purchases_stripe_session ON purchases(stripe_checkout_session_id);
+
+    -- Email verification tokens
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_user ON email_verification_tokens(user_id);
   `);
 
   // Migrations: Add new columns if they don't exist
-  // Note: subscription-related migrations removed (credit pack model now)
-  const migrations: { table: string; column: string; type: string }[] = [];
+  const migrations: { table: string; column: string; type: string }[] = [
+    { table: 'users', column: 'email_verified_at', type: 'INTEGER' },
+  ];
 
   for (const { table, column, type } of migrations) {
     try {

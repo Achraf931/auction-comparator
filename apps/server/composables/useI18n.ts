@@ -131,6 +131,29 @@ const messages = {
     cachedResult: 'Cached result',
     cachedResultFree: 'This is a cached result (free)',
 
+    // Email verification
+    verifyEmailTitle: 'Verify Your Email',
+    verifyEmailDesc: 'We sent a verification link to your email address. Please check your inbox and click the link to verify your account.',
+    resendVerificationEmail: 'Resend verification email',
+    verificationEmailSent: 'Verification email sent!',
+    emailNotVerified: 'Email not verified',
+    emailNotVerifiedDesc: 'Please verify your email address before purchasing credits.',
+    emailVerified: 'Email verified',
+    emailVerifiedSuccess: 'Your email has been verified successfully!',
+    emailVerifiedSuccessDesc: 'You can now access all features of AuctiMatch.',
+    emailVerificationError: 'Verification failed',
+    emailVerificationExpired: 'This verification link has expired or is invalid. Please request a new one.',
+    emailVerificationMissing: 'No verification token found. Please check your email for the correct link.',
+    goToAccount: 'Go to Account',
+    checkYourEmail: 'Check your email',
+    verifyEmailBanner: 'Please verify your email to access all features.',
+
+    // Landing page - Footer
+    legalNotice: 'Legal Notice',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
+    contact: 'Contact',
+
     // Landing page - Hero
     smartAuctionPriceAnalysis: 'Smart Auction Price Analysis',
     heroTitle1: 'Never Overpay at',
@@ -335,6 +358,29 @@ const messages = {
     freeSearchExplanation: 'Une comparaison = une vérification de prix sur Internet. Les résultats récents sont réutilisés automatiquement.',
     cachedResult: 'Résultat en cache',
     cachedResultFree: 'Ceci est un résultat enregistré (gratuit)',
+
+    // Email verification
+    verifyEmailTitle: 'Vérifiez votre e-mail',
+    verifyEmailDesc: 'Nous avons envoyé un lien de vérification à votre adresse e-mail. Veuillez consulter votre boîte de réception et cliquer sur le lien pour vérifier votre compte.',
+    resendVerificationEmail: 'Renvoyer l\'e-mail de vérification',
+    verificationEmailSent: 'E-mail de vérification envoyé !',
+    emailNotVerified: 'E-mail non vérifié',
+    emailNotVerifiedDesc: 'Veuillez vérifier votre adresse e-mail avant d\'acheter des crédits.',
+    emailVerified: 'E-mail vérifié',
+    emailVerifiedSuccess: 'Votre e-mail a été vérifié avec succès !',
+    emailVerifiedSuccessDesc: 'Vous pouvez maintenant accéder à toutes les fonctionnalités d\'AuctiMatch.',
+    emailVerificationError: 'Échec de la vérification',
+    emailVerificationExpired: 'Ce lien de vérification a expiré ou est invalide. Veuillez en demander un nouveau.',
+    emailVerificationMissing: 'Aucun jeton de vérification trouvé. Veuillez vérifier votre e-mail pour le lien correct.',
+    goToAccount: 'Aller au compte',
+    checkYourEmail: 'Consultez votre e-mail',
+    verifyEmailBanner: 'Veuillez vérifier votre e-mail pour accéder à toutes les fonctionnalités.',
+
+    // Landing page - Footer
+    legalNotice: 'Mentions légales',
+    privacyPolicy: 'Politique de confidentialité',
+    termsOfService: 'Conditions d\'utilisation',
+    contact: 'Contact',
 
     // Landing page - Hero
     smartAuctionPriceAnalysis: 'Analyse intelligente des prix d\'enchères',

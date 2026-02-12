@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { isAuthenticated } = useAuth();
 const { t, locale } = useI18n();
+import { legacyLinks, CONTACT_EMAIL } from '~/config/legacyLinks';
 
 // Premium credit packs (synced with server registry)
 const creditPacks = [
@@ -448,5 +449,33 @@ const faqs = computed(() => [
         {{ t('goToDashboard') }}
       </UButton>
     </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-zinc-200 dark:border-zinc-800 pt-8 pb-4 -mx-4 px-4">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <UIcon name="i-lucide-scale" class="w-4 h-4 text-primary-500" />
+          <span>AuctiMatch</span>
+        </div>
+        <nav class="flex flex-wrap items-center justify-center gap-4 text-sm">
+          <template v-for="link in legacyLinks" :key="link.key">
+            <a
+              v-if="'href' in link"
+              :href="link.href"
+              class="text-zinc-500 dark:text-zinc-400 hover:text-primary-500 transition-colors"
+            >
+              {{ t(link.key) }}
+            </a>
+            <NuxtLink
+              v-else
+              :to="link.to"
+              class="text-zinc-500 dark:text-zinc-400 hover:text-primary-500 transition-colors"
+            >
+              {{ t(link.key) }}
+            </NuxtLink>
+          </template>
+        </nav>
+      </div>
+    </footer>
   </div>
 </template>

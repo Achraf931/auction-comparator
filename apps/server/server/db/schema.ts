@@ -7,6 +7,7 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   stripeCustomerId: text('stripe_customer_id').unique(),
+  emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }), // null = not verified
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
@@ -38,11 +39,23 @@ export const sessions = sqliteTable('sessions', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
+// Email verification tokens
+export const emailVerificationTokens = sqliteTable('email_verification_tokens', {
+  id: text('id').primaryKey(), // UUID
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(), // SHA-256 hash of the token
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => [
+  index('email_verification_tokens_user_idx').on(table.userId),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   apiTokens: many(apiTokens),
   sessions: many(sessions),
   searchHistory: many(searchHistory),
+  emailVerificationTokens: many(emailVerificationTokens),
 }));
 
 export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
@@ -55,6 +68,13 @@ export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const emailVerificationTokensRelations = relations(emailVerificationTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [emailVerificationTokens.userId],
     references: [users.id],
   }),
 }));
@@ -207,6 +227,8 @@ export type ApiToken = typeof apiTokens.$inferSelect;
 export type NewApiToken = typeof apiTokens.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type NewEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
 export type CompareCacheEntry = typeof compareCacheEntries.$inferSelect;
 export type NewCompareCacheEntry = typeof compareCacheEntries.$inferInsert;
 export type SearchHistory = typeof searchHistory.$inferSelect;
