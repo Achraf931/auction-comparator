@@ -23,9 +23,11 @@ export interface ExtensionSettings {
   hiddenOrigins: string[];
 }
 
+declare const __API_BASE__: string
+
 const DEFAULT_SETTINGS: ExtensionSettings = {
   enabled: true,
-  apiBase: 'http://localhost:3001',
+  apiBase: typeof __API_BASE__ !== 'undefined' ? __API_BASE__ : 'http://localhost:3001',
   disabledDomains: [],
   autoExpand: true,
   marginPercent: 10,

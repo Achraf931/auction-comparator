@@ -141,21 +141,8 @@ export default defineBackground(() => {
     // Handle the message asynchronously
     ;(async () => {
       try {
-        // Verify the sender is from our allowed origins
-        const settings = await getSettings()
-        const allowedOrigin = new URL(settings.apiBase).origin
-
-        console.log('[Auction Comparator] Allowed origin:', allowedOrigin)
+        // Origin is already verified by Chrome's externally_connectable manifest config
         console.log('[Auction Comparator] Sender origin:', sender.origin || sender.url)
-
-        // Check origin (sender.origin might be undefined, use url as fallback)
-        const senderOrigin = sender.origin || (sender.url ? new URL(sender.url).origin : null)
-
-        if (senderOrigin && senderOrigin !== allowedOrigin) {
-          console.warn('[Auction Comparator] Rejected external message from:', senderOrigin)
-          sendResponse({ success: false, error: 'Invalid origin' })
-          return
-        }
 
         if (message.type === 'AUTH_TOKEN') {
           await handleSetToken(message.token)

@@ -20,7 +20,7 @@ export default defineConfig({
   manifest: {
     name: 'Auction Price Comparator',
     description: 'Compare auction bid prices with web market prices',
-    version: '0.1.0',
+    version: '0.1.1',
     permissions: ['storage', 'activeTab', 'alarms', 'scripting'],
     // Use optional_host_permissions for privacy-friendly permission requests
     optional_host_permissions: OPTIONAL_HOST_PERMISSIONS,
@@ -29,13 +29,29 @@ export default defineConfig({
       matches: [
         'http://localhost/*',
         'https://localhost/*',
+        'https://auction-comparator.com/*',
         'https://*.auction-comparator.com/*',
+        'https://auctimatch.com/*',
         'https://*.auctimatch.com/*',
       ],
+    },
+    // Firefox-specific settings
+    browser_specific_settings: {
+      gecko: {
+        id: 'auctimatch@auctimatch.com',
+        strict_min_version: '109.0',
+        data_collection_permissions: {
+          required: ['none'],
+          optional: ['technicalAndInteraction'],
+        },
+      },
     },
   },
 
   vite: () => ({
+    define: {
+      __API_BASE__: JSON.stringify(process.env.API_BASE || 'http://localhost:3001'),
+    },
     plugins: [
       ui({
         ui: {
